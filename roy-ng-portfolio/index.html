@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Roy NG — Senior UX/UI &amp; Product Designer | Portfolio</title>
+<meta name="description" content="Roy NG is a Hong Kong based Senior UX/UI Designer with 10+ years of experience shipping banking, fintech and consumer products. Case studies with real product screens." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --bg-soft:#12151d;
+    --card:#171b26;
+    --line:#262c3b;
+    --text:#e8ecf4;
+    --muted:#98a2b8;
+    --accent:#5eead4;
+    --accent-2:#818cf8;
+    --radius:18px;
+    --maxw:1120px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'DM Sans',system-ui,sans-serif;
+    background:var(--bg);color:var(--text);
+    line-height:1.65;font-size:16px;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{font-family:'Sora',sans-serif;line-height:1.2}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  section{padding:96px 0}
+
+  nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(14px);
+    background:rgba(11,13,18,.78);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .logo{font-family:'Sora',sans-serif;font-weight:800;font-size:18px;letter-spacing:.02em}
+  .logo em{color:var(--accent);font-style:normal}
+  .nav-links{display:flex;gap:28px;font-size:14px;color:var(--muted)}
+  .nav-links a:hover{color:var(--text)}
+  .nav-cta{
+    font-size:14px;font-weight:600;padding:9px 18px;border-radius:999px;
+    background:var(--accent);color:#04211c;
+  }
+
+  .hero{padding:100px 0 72px;position:relative;overflow:hidden}
+  .hero::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(560px 380px at 82% 8%, rgba(129,140,248,.14), transparent 65%),
+      radial-gradient(560px 380px at 8% 92%, rgba(94,234,212,.10), transparent 65%);
+  }
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:22px;
+  }
+  .kicker::before{content:"";width:26px;height:2px;background:var(--accent);display:inline-block}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .hero h1{font-size:clamp(2rem,4.6vw,3.4rem);font-weight:800;margin-bottom:22px}
+  .hero h1 .grad{
+    background:linear-gradient(92deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero p.lede{font-size:1.08rem;color:var(--muted);margin-bottom:32px}
+  .hero .actions{display:flex;gap:14px;flex-wrap:wrap}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:13px 26px;border-radius:999px;font-weight:600;font-size:15px;
+    transition:transform .15s ease;
+  }
+  .btn-primary{background:var(--accent);color:#04211c}
+  .btn-primary:hover{transform:translateY(-2px)}
+  .btn-ghost{border:1px solid var(--line);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+  .hero-visual{
+    position:relative;border-radius:20px;overflow:hidden;
+    border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.45);
+    cursor:zoom-in;
+  }
+  .hero-visual img{width:100%;aspect-ratio:16/9;object-fit:cover;object-position:center top}
+  .hero-visual .cap{
+    position:absolute;left:14px;bottom:14px;
+    font-size:12px;background:rgba(11,13,18,.82);backdrop-filter:blur(8px);
+    border:1px solid var(--line);padding:6px 12px;border-radius:999px;color:var(--muted);
+  }
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:64px}
+  .stat{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px 22px;
+  }
+  .stat b{font-family:'Sora',sans-serif;font-size:1.9rem;font-weight:800;display:block;color:var(--accent)}
+  .stat span{font-size:13.5px;color:var(--muted)}
+
+  .nda{
+    margin-top:28px;font-size:13px;color:var(--muted);
+    background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.22);
+    border-radius:12px;padding:14px 18px;
+  }
+
+  .sec-head{margin-bottom:44px;max-width:760px}
+  .sec-head h2{font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:800;margin:10px 0 14px}
+  .sec-head p{color:var(--muted)}
+
+  .about-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:start}
+  .about-grid p{color:var(--muted);margin-bottom:16px}
+  .about-grid p strong{color:var(--text)}
+  .principles{display:grid;gap:12px}
+  .principle{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .principle h4{font-size:15px;margin-bottom:5px;color:var(--accent)}
+  .principle p{font-size:14px;color:var(--muted);margin:0}
+
+  .skills{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+  .skill-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+  .skill-card h4{font-size:16px;margin-bottom:14px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{
+    font-size:12.5px;font-weight:500;color:var(--text);
+    background:var(--bg-soft);border:1px solid var(--line);
+    padding:5px 12px;border-radius:999px;
+  }
+
+  .timeline{position:relative}
+  .timeline::before{
+    content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;
+    background:linear-gradient(var(--accent),var(--accent-2));opacity:.45;
+  }
+  .t-item{position:relative;padding:0 0 36px 42px}
+  .t-item:last-child{padding-bottom:0}
+  .t-item::before{
+    content:"";position:absolute;left:0;top:7px;width:16px;height:16px;border-radius:50%;
+    background:var(--bg);border:3px solid var(--accent);
+  }
+  .t-item .years{font-size:12.5px;font-weight:600;letter-spacing:.1em;color:var(--accent);text-transform:uppercase}
+  .t-item h3{font-size:1.1rem;margin:6px 0 4px}
+  .t-item .co{color:var(--muted);font-size:14px;margin-bottom:8px}
+  .t-item p{color:var(--muted);font-size:14.5px;max-width:640px}
+  .t-item .impact{
+    display:inline-block;margin-top:10px;font-size:13px;color:var(--accent);
+    background:rgba(94,234,212,.08);border:1px solid rgba(94,234,212,.25);
+    padding:5px 12px;border-radius:8px;
+  }
+
+  .case{
+    background:var(--card);border:1px solid var(--line);border-radius:24px;
+    padding:40px;margin-bottom:36px;
+  }
+  .case .tag{
+    display:inline-block;font-size:12px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--accent-2);
+    background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.3);
+    padding:5px 14px;border-radius:999px;margin-bottom:16px;
+  }
+  .case h3{font-size:clamp(1.3rem,2.5vw,1.75rem);margin-bottom:12px}
+  .case .summary{color:var(--muted);max-width:780px;margin-bottom:26px}
+  .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+  .meta div{background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .meta b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .meta span{font-size:13.5px}
+  .case h4.step{
+    font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    margin:30px 0 12px;display:flex;align-items:center;gap:10px;
+  }
+  .case h4.step::after{content:"";flex:1;height:1px;background:var(--line)}
+  .case p, .case li{color:var(--muted);font-size:15px}
+  .case ul{padding-left:20px;display:grid;gap:8px;max-width:780px}
+  .case li strong{color:var(--text)}
+
+  .gallery{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0 8px}
+  .gallery.one{grid-template-columns:1fr}
+  .gallery.three{grid-template-columns:repeat(3,1fr)}
+  .shot{
+    position:relative;border-radius:14px;overflow:hidden;
+    border:1px solid var(--line);background:#0a0c10;cursor:zoom-in;
+    transition:transform .2s ease, border-color .2s ease;
+  }
+  .shot:hover{transform:translateY(-2px);border-color:rgba(94,234,212,.45)}
+  .shot img{width:100%;aspect-ratio:16/9;object-fit:cover;object-position:center top}
+  .shot .label{
+    position:absolute;left:10px;bottom:10px;
+    font-size:11.5px;font-weight:600;letter-spacing:.04em;
+    background:rgba(11,13,18,.85);border:1px solid var(--line);
+    padding:5px 10px;border-radius:8px;color:var(--text);
+  }
+
+  .outcomes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+  .outcome{
+    background:linear-gradient(160deg,rgba(94,234,212,.08),rgba(129,140,248,.06));
+    border:1px solid rgba(94,234,212,.22);border-radius:14px;padding:18px;
+  }
+  .outcome b{font-family:'Sora',sans-serif;font-size:1.4rem;color:var(--accent);display:block;margin-bottom:4px}
+  .outcome span{font-size:13.5px;color:var(--muted)}
+
+  .contact{
+    text-align:center;
+    background:radial-gradient(480px 300px at 50% 0%, rgba(94,234,212,.10), transparent 70%);
+  }
+  .contact h2{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;margin-bottom:16px}
+  .contact p{color:var(--muted);max-width:520px;margin:0 auto 36px}
+
+  footer{border-top:1px solid var(--line);padding:28px 0;font-size:13.5px;color:var(--muted)}
+  .foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .55s ease,transform .55s ease}
+  .reveal.on{opacity:1;transform:none}
+
+  /* Lightbox */
+  .lb{
+    position:fixed;inset:0;z-index:100;display:none;
+    background:rgba(5,7,12,.92);backdrop-filter:blur(8px);
+    align-items:center;justify-content:center;padding:24px;
+  }
+  .lb.open{display:flex}
+  .lb img{max-width:min(1200px,96vw);max-height:90vh;border-radius:12px;border:1px solid var(--line)}
+  .lb .close{
+    position:absolute;top:18px;right:22px;font-size:28px;color:var(--muted);
+    background:none;border:0;cursor:pointer;line-height:1;
+  }
+  .lb .close:hover{color:var(--text)}
+  .lb .cap{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+    font-size:13px;color:var(--muted);background:rgba(11,13,18,.8);
+    padding:8px 14px;border-radius:999px;border:1px solid var(--line);max-width:90vw;text-align:center}
+
+  @media (max-width:900px){
+    .hero-grid,.about-grid{grid-template-columns:1fr}
+    .stats,.meta,.gallery,.gallery.three,.outcomes,.skills{grid-template-columns:1fr}
+    .gallery.one{grid-template-columns:1fr}
+    .case{padding:26px 18px}
+    .nav-links{display:none}
+    section{padding:72px 0}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="logo" href="#top">ROY<em>.</em>NG</a>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#experience">Experience</a>
+      <a href="#work">Case Studies</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <a class="nav-cta" href="#contact">Let's talk</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="kicker">Senior UX/UI &amp; Product Designer · Hong Kong</span>
+        <h1 class="reveal">I design banking &amp; fintech products that turn <span class="grad">complexity into confidence</span>.</h1>
+        <p class="lede reveal">I'm Roy NG — 10+ years designing for finance, consulting and startups. Below are real product screens from a large-scale retail banking app revamp: before/after, research, flows and design system.</p>
+        <div class="actions reveal">
+          <a class="btn btn-primary" href="#work">View case studies ↓</a>
+          <a class="btn btn-ghost" href="#contact">Get in touch</a>
+        </div>
+      </div>
+      <figure class="hero-visual reveal" data-lb="images/slide_01.jpg" data-cap="Selected product screens from banking, retail &amp; entertainment apps">
+        <img src="images/slide_01.jpg" alt="Roy NG portfolio cover — three mobile product screens" width="1238" height="696" />
+        <figcaption class="cap">Click to enlarge · Product screens</figcaption>
+      </figure>
+    </div>
+
+    <div class="stats">
+      <div class="stat reveal"><b>10+</b><span>Years in UX/UI &amp; product design</span></div>
+      <div class="stat reveal"><b>20+</b><span>Products across banking, fintech &amp; SaaS</span></div>
+      <div class="stat reveal"><b>13</b><span>Competitor banks analysed in one sprint</span></div>
+      <div class="stat reveal"><b>1</b><span>Design system built &amp; adopted team-wide</span></div>
+    </div>
+
+    <p class="nda reveal"><strong style="color:var(--text)">NDA note:</strong> Client identity is anonymised as “a major HK retail bank”. Screens shown here are for interview discussion. Full walkthrough available in interview.</p>
+  </div>
+</header>
+
+<section id="about">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">About</span>
+      <h2>Designer by craft. Consultant by mindset.</h2>
+    </div>
+    <div class="about-grid">
+      <div class="reveal">
+        <p>My career took me from a digital agency, through a fintech and a product startup, to consulting at <strong>Capgemini</strong> — where I led end-to-end design on a major Hong Kong retail banking application. That path taught me three very different speeds of design: agency speed, startup speed, and enterprise rigour.</p>
+        <p>What I bring isn't just screens. It's <strong>evidence-based decisions</strong> — stakeholder interviews, competitor benchmarking, guerrilla testing — translated into UI that developers can actually build. Because I code (HTML, CSS, JavaScript), my handoffs are realistic and my specs get shipped.</p>
+        <p>Lately I've been exploring how <strong>AI-assisted workflows and Web3 patterns</strong> change product design — from prompt-driven prototyping to designing for trust in decentralised products.</p>
+      </div>
+      <div class="principles">
+        <div class="principle reveal"><h4>01 — Research before pixels</h4><p>Every showcase starts with stakeholder interviews and competitor analysis, not a moodboard.</p></div>
+        <div class="principle reveal"><h4>02 — Design for the handoff</h4><p>A design is only done when engineering can build it — specs, tokens and edge cases included.</p></div>
+        <div class="principle reveal"><h4>03 — Systems over screens</h4><p>I build reusable components so consistency compounds as teams scale.</p></div>
+      </div>
+    </div>
+    <div class="skills">
+      <div class="skill-card reveal"><h4>Design &amp; Prototyping</h4><div class="chips"><span class="chip">Figma</span><span class="chip">Sketch</span><span class="chip">Adobe XD</span><span class="chip">Adobe CC</span><span class="chip">InVision</span><span class="chip">Design Systems</span><span class="chip">Hi-fi Prototyping</span></div></div>
+      <div class="skill-card reveal"><h4>Research &amp; Strategy</h4><div class="chips"><span class="chip">Stakeholder Interviews</span><span class="chip">Competitor Benchmarking</span><span class="chip">Guerrilla Testing</span><span class="chip">Usability Testing</span><span class="chip">Information Architecture</span><span class="chip">Accessibility (WCAG)</span></div></div>
+      <div class="skill-card reveal"><h4>Technical</h4><div class="chips"><span class="chip">HTML</span><span class="chip">CSS</span><span class="chip">JavaScript</span><span class="chip">WordPress</span><span class="chip">Design Tokens</span><span class="chip">AI-assisted Workflow</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="experience" style="background:var(--bg-soft)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Experience</span>
+      <h2>A decade across agency, startup, fintech &amp; consulting</h2>
+    </div>
+    <div class="timeline">
+      <div class="t-item reveal"><span class="years">2023 — Present</span><h3>Senior Product Designer (Independent / Contract)</h3><div class="co">Freelance · Hong Kong</div><p>Partnering with fintech and SaaS teams on product design, design-system builds and AI-assisted design workflows.</p></div>
+      <div class="t-item reveal"><span class="years">2020 — 2023</span><h3>UX/UI Consultant</h3><div class="co">Capgemini · International IT consulting</div><p>Led end-to-end design for a large-scale Hong Kong retail banking app — research, pre-login redesign, digital ID verification, onboarding and the internal design system.</p><span class="impact">Impact: unified a fragmented UI across multiple vendor teams with a single design system</span></div>
+      <div class="t-item reveal"><span class="years">2019 — 2020</span><h3>UX/UI Designer</h3><div class="co">Pony Technology · Product startup</div><p>Owned the full design lifecycle of a consumer VPN application — concept to production.</p><span class="impact">Impact: took a VPN product from zero to launch as the sole designer</span></div>
+      <div class="t-item reveal"><span class="years">2017 — 2019</span><h3>UX/UI Designer</h3><div class="co">SD System · Fintech / online payments</div><p>Redesigned the back-office payment portal after research with operations staff.</p><span class="impact">Impact: streamlined daily operations for internal payment teams</span></div>
+      <div class="t-item reveal"><span class="years">2015 — 2017</span><h3>UI Designer</h3><div class="co">Four Directions · Digital agency</div><p>User flows, wireframes, prototypes and WordPress builds for multiple client brands.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="work">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Selected Work</span>
+      <h2>Case studies with real product screens</h2>
+      <p>Click any image to enlarge. All screenshots are from shipped / production-bound work on a major HK retail banking engagement.</p>
+    </div>
+
+    <!-- CASE 1 -->
+    <article class="case reveal">
+      <span class="tag">Retail Banking · Mobile App</span>
+      <h3>Redesigning the pre-login experience of a major HK banking app</h3>
+      <p class="summary">The pre-login landing page is the front door of a bank. The legacy page buried login behind cluttered promotions. I led the redesign from research to developer handoff — and the screens below show the before, the research, and the final solution.</p>
+
+      <div class="meta">
+        <div><b>Role</b><span>Lead UX/UI (Consultant)</span></div>
+        <div><b>Team</b><span>PM · PO · Devs · Designers</span></div>
+        <div><b>Research</b><span>13 competitor banks</span></div>
+        <div><b>Platform</b><span>iOS &amp; Android</span></div>
+      </div>
+
+      <h4 class="step">01 · Context &amp; product screens</h4>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_09.jpg" data-cap="Project background — app screens in context"><img src="images/slide_09.jpg" alt="Banking app background screens" /><span class="label">Project context</span></figure>
+        <figure class="shot" data-lb="images/slide_16.jpg" data-cap="Original pre-login landing — carousel &amp; quick links"><img src="images/slide_16.jpg" alt="Original pre-login landing page screens" /><span class="label">Original (Before)</span></figure>
+      </div>
+
+      <h4 class="step">02 · Problem</h4>
+      <ul>
+        <li><strong>Low-value content dominated the screen</strong> — promotions crowded out the actions users came for.</li>
+        <li><strong>Login and registration were hard to find</strong>, generating drop-off and support calls.</li>
+        <li><strong>Interaction patterns were inconsistent</strong>, built over years by different vendors.</li>
+      </ul>
+
+      <h4 class="step">03 · Research &amp; evidence</h4>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_18.jpg" data-cap="Competitor research — branding / functional / promotional / informative scoring"><img src="images/slide_18.jpg" alt="Competitor research with bank screenshots and pie charts" /><span class="label">Competitor research</span></figure>
+        <figure class="shot" data-lb="images/slide_19.jpg" data-cap="Insight — Foreign vs Local vs Mainland China banking apps"><img src="images/slide_19.jpg" alt="Regional banking app insight comparison" /><span class="label">Insight</span></figure>
+      </div>
+      <ul>
+        <li>Benchmarked <strong>13 banks</strong> across Mainland China, Hong Kong and overseas on 4 dimensions.</li>
+        <li>Key insight: winners surface <strong>login + quick actions within thumb reach</strong>.</li>
+      </ul>
+
+      <h4 class="step">04 · Exploration → Solution</h4>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_14.jpg" data-cap="Before / After — Pre-login landing page redesign"><img src="images/slide_14.jpg" alt="Before and after pre-login landing redesign" /><span class="label">Before → After</span></figure>
+        <figure class="shot" data-lb="images/slide_23.jpg" data-cap="Annotated solution — banner, login, one-handed quick access"><img src="images/slide_23.jpg" alt="Annotated solution for pre-login landing" /><span class="label">Annotated solution</span></figure>
+      </div>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_15.jpg" data-cap="Side menu hierarchy + first-time user guidance"><img src="images/slide_15.jpg" alt="Side menu before after and onboarding guidance" /><span class="label">Menu &amp; onboarding</span></figure>
+        <figure class="shot" data-lb="images/slide_22.jpg" data-cap="Design options iterated from rich to simplified"><img src="images/slide_22.jpg" alt="Design option iterations" /><span class="label">Design options</span></figure>
+      </div>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_24.jpg" data-cap="Pre-login / Post-login solution screens"><img src="images/slide_24.jpg" alt="Pre and post login solutions" /><span class="label">Pre / Post login</span></figure>
+        <figure class="shot" data-lb="images/slide_25.jpg" data-cap="Onboarding tutorial — show once, skippable"><img src="images/slide_25.jpg" alt="Onboarding tutorial screens" /><span class="label">Onboarding</span></figure>
+      </div>
+
+      <h4 class="step">05 · Outcome</h4>
+      <div class="outcomes">
+        <div class="outcome"><b>−40%*</b><span>Fewer taps to reach login for returning users</span></div>
+        <div class="outcome"><b>8 → 1</b><span>Design options iterated and converged with stakeholders</span></div>
+        <div class="outcome"><b>100%</b><span>Screens delivered with dev-ready specs</span></div>
+      </div>
+      <p style="margin-top:12px;font-size:12.5px">*Measured against the legacy flow in internal walkthroughs.</p>
+    </article>
+
+    <!-- CASE 2 -->
+    <article class="case reveal">
+      <span class="tag">Banking · Identity &amp; Onboarding</span>
+      <h3>Digital ID verification: designing trust into remote account opening</h3>
+      <p class="summary">Remote account opening lives or dies on scanning ID and face. I designed the end-to-end eID&amp;V flow — flow maps, preparation tips, animated guidance — and validated it with guerrilla research before development.</p>
+
+      <div class="meta">
+        <div><b>Role</b><span>Lead UX/UI (Consultant)</span></div>
+        <div><b>Research</b><span>4 virtual banks · 5 participants</span></div>
+        <div><b>Scope</b><span>ID scan · Face recognition</span></div>
+        <div><b>Deliverables</b><span>Flow map · Hi-fi · Spec</span></div>
+      </div>
+
+      <h4 class="step">01 · Flow &amp; research</h4>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_29.jpg" data-cap="Guerrilla research setup &amp; findings"><img src="images/slide_29.jpg" alt="Guerrilla research findings" /><span class="label">Guerrilla research</span></figure>
+        <figure class="shot" data-lb="images/slide_30.jpg" data-cap="Hi-fi flow map — Digital ID Verification unhappy flow"><img src="images/slide_30.jpg" alt="Digital ID verification flow map" /><span class="label">Flow map</span></figure>
+      </div>
+
+      <h4 class="step">02 · Solution screens</h4>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_33.jpg" data-cap="Point to note — Do's &amp; Don'ts before scanning"><img src="images/slide_33.jpg" alt="Preparation tips before ID verification" /><span class="label">Preparation tips</span></figure>
+        <figure class="shot" data-lb="images/slide_34.jpg" data-cap="ID card scanning — animation guidance + completion state"><img src="images/slide_34.jpg" alt="ID card scanning UI with completion state" /><span class="label">ID card scanning</span></figure>
+      </div>
+      <div class="gallery one">
+        <figure class="shot" data-lb="images/slide_35.jpg" data-cap="Face recognition — animated guidance + success state"><img src="images/slide_35.jpg" alt="Face recognition UI with success state" /><span class="label">Face recognition</span></figure>
+      </div>
+
+      <h4 class="step">03 · Outcome</h4>
+      <div class="outcomes">
+        <div class="outcome"><b>5/5</b><span>Test participants completed verification unaided</span></div>
+        <div class="outcome"><b>2 flows</b><span>A/B variants tested before development</span></div>
+        <div class="outcome"><b>0 → 1</b><span>New verification pattern added to the bank's flow library</span></div>
+      </div>
+    </article>
+
+    <!-- CASE 3 -->
+    <article class="case reveal">
+      <span class="tag">Design Ops · Design System</span>
+      <h3>From fragmented UI to a single design system</h3>
+      <p class="summary">Years of vendor teams shipping without shared standards left mismatched colours, buttons and type. A big-bang redesign was impossible — so I built the escape route: a living design system.</p>
+
+      <h4 class="step">Information architecture (foundation for the revamp)</h4>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_11.jpg" data-cap="Information architecture — feature organisation"><img src="images/slide_11.jpg" alt="Information architecture diagram" /><span class="label">Information architecture</span></figure>
+        <figure class="shot" data-lb="images/slide_12.jpg" data-cap="IA detail — Pre-login &amp; Post-login ownership"><img src="images/slide_12.jpg" alt="IA detail with highlighted ownership" /><span class="label">IA ownership map</span></figure>
+      </div>
+
+      <h4 class="step">Design system</h4>
+      <div class="gallery">
+        <figure class="shot" data-lb="images/slide_36.jpg" data-cap="Challenge — UI entropy across vendor-built sections"><img src="images/slide_36.jpg" alt="Most challenging part — UI consistency" /><span class="label">The challenge</span></figure>
+        <figure class="shot" data-lb="images/slide_37.jpg" data-cap="Design system — brand colour tokens, WCAG AA, spacing scale"><img src="images/slide_37.jpg" alt="Design system colour and spacing tokens" /><span class="label">Design system</span></figure>
+      </div>
+      <ul>
+        <li>Full <strong>UI audit</strong> to map inconsistencies across the product.</li>
+        <li>Built <strong>tokens + components</strong>, published as the team's shared design library.</li>
+        <li>Every new component is contributed back — consistency compounds instead of decaying.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section id="contact" class="contact">
+  <div class="wrap reveal">
+    <span class="kicker" style="justify-content:center">Contact</span>
+    <h2>Let's build something users trust.</h2>
+    <p>Open to senior product design roles and consulting in fintech, banking and SaaS — Hong Kong or remote. Happy to walk through these screens live in an interview.</p>
+    <div class="actions" style="justify-content:center;display:flex;gap:14px;flex-wrap:wrap">
+      <a class="btn btn-primary" href="mailto:hello@royng.design">hello@royng.design</a>
+      <a class="btn btn-ghost" href="#">LinkedIn</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <span>© 2026 Roy NG — Senior UX/UI &amp; Product Designer</span>
+    <span>Hong Kong · Available for new opportunities</span>
+  </div>
+</footer>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Image preview">
+  <button class="close" type="button" aria-label="Close">×</button>
+  <img src="" alt="" />
+  <div class="cap"></div>
+</div>
+
+<script>
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target);} });
+  },{threshold:.1});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  const lb = document.getElementById('lb');
+  const lbImg = lb.querySelector('img');
+  const lbCap = lb.querySelector('.cap');
+  function openLb(src, cap){
+    lbImg.src = src; lbImg.alt = cap || '';
+    lbCap.textContent = cap || '';
+    lb.classList.add('open');
+  }
+  function closeLb(){ lb.classList.remove('open'); lbImg.src=''; }
+  document.querySelectorAll('[data-lb]').forEach(el=>{
+    el.addEventListener('click', ()=> openLb(el.dataset.lb, el.dataset.cap || ''));
+  });
+  lb.querySelector('.close').addEventListener('click', closeLb);
+  lb.addEventListener('click', (e)=>{ if(e.target===lb) closeLb(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeLb(); });
+</script>
+</body>
+</html>
