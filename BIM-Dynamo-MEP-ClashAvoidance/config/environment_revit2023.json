@@ -1,0 +1,13 @@
+{
+  "revit_version": "2023",
+  "dynamo_python_engine": "IronPython2",
+  "notes": [
+    "Open host MEP model in Revit 2023",
+    "Link ARC and STC models aligned to shared coordinates",
+    "Dynamo Settings > Python > IronPython2",
+    "Wire python/00-06 per docs/DYNAMO_ASSEMBLY.md",
+    "First run DetectOnly"
+  ],
+  "config_file": "config/clearance_rules.json",
+  "primary_dyn": "dynamo/MEP_AutoAvoid_ARC_STC.dyn"
+}
