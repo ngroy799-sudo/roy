@@ -1,0 +1,479 @@
+{
+  "Uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "IsCustomNode": false,
+  "Description": "Phase 1 MEP Clash Report - Dynamo Player Ready\nSelect MEP (Pipe/Duct) and obstacles, detect vertical clearance violations (incl. insulation). 100mm default.",
+  "Name": "MEP_Clash_Report_Player",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [
+    {
+      "Id": "sel-subjects-guid-0001",
+      "Name": "1. Select MEP (Pipe/Duct)",
+      "Type": "selection",
+      "Description": "Select the MEP elements (Pipe or Duct) to check for clashes"
+    },
+    {
+      "Id": "sel-obstacles-guid-0002",
+      "Name": "2. Select Obstacles",
+      "Type": "selection",
+      "Description": "Select all obstacle models to avoid (beams, walls, etc.)"
+    },
+    {
+      "Id": "num-clearance-guid-0003",
+      "Name": "3. Clearance (mm)",
+      "Type": "number",
+      "Value": "100",
+      "Description": "Vertical clearance target in mm (incl. insulation)"
+    },
+    {
+      "Id": "num-mergegap-guid-0004",
+      "Name": "4. Merge Gap (mm)",
+      "Type": "number",
+      "Value": "300",
+      "Description": "Merge nearby clash zones within this distance (mm)"
+    }
+  ],
+  "Outputs": [
+    {
+      "Id": "watch-report-guid-0010",
+      "Name": "Clash Report",
+      "Type": "string"
+    }
+  ],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Nodes.DSModelElementsSelection, DSRevitNodesUI",
+      "NodeType": "ExtensionNode",
+      "Id": "sel-subjects-guid-0001",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "sel-subjects-out-0001",
+          "Name": "Elements",
+          "Description": "Selected MEP elements",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Renamable": true,
+      "Name": "1. Select MEP (Pipe/Duct)",
+      "IsSetAsInput": true,
+      "IsSetAsOutput": false,
+      "Excluded": false,
+      "ShowGeometry": false,
+      "X": 100.0,
+      "Y": 100.0
+    },
+    {
+      "ConcreteType": "Dynamo.Nodes.DSModelElementsSelection, DSRevitNodesUI",
+      "NodeType": "ExtensionNode",
+      "Id": "sel-obstacles-guid-0002",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "sel-obstacles-out-0002",
+          "Name": "Elements",
+          "Description": "Selected obstacle elements",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Renamable": true,
+      "Name": "2. Select Obstacles",
+      "IsSetAsInput": true,
+      "IsSetAsOutput": false,
+      "Excluded": false,
+      "ShowGeometry": false,
+      "X": 100.0,
+      "Y": 250.0
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleSlider, CoreNodeModels",
+      "NodeType": "NumberInputNode",
+      "NumberType": "Double",
+      "MaximumValue": 500.0,
+      "MinimumValue": 0.0,
+      "StepValue": 10.0,
+      "InputValue": 100.0,
+      "Id": "num-clearance-guid-0003",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "num-clearance-out-0003",
+          "Name": "",
+          "Description": "Double",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Renamable": true,
+      "Name": "3. Clearance (mm)",
+      "IsSetAsInput": true,
+      "IsSetAsOutput": false,
+      "Excluded": false,
+      "ShowGeometry": false,
+      "X": 100.0,
+      "Y": 400.0
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleSlider, CoreNodeModels",
+      "NodeType": "NumberInputNode",
+      "NumberType": "Double",
+      "MaximumValue": 1000.0,
+      "MinimumValue": 0.0,
+      "StepValue": 50.0,
+      "InputValue": 300.0,
+      "Id": "num-mergegap-guid-0004",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "num-mergegap-out-0004",
+          "Name": "",
+          "Description": "Double",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Renamable": true,
+      "Name": "4. Merge Gap (mm)",
+      "IsSetAsInput": true,
+      "IsSetAsOutput": false,
+      "Excluded": false,
+      "ShowGeometry": false,
+      "X": 100.0,
+      "Y": 500.0
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "# MEP Clash Report — Dynamo Player (Phase 1)\n# =============================================\n# Detects vertical clearance violations between\n# selected MEP (Pipe/Duct) and obstacle models.\n# Includes insulation in measurement.\n# Does NOT modify the model.\n\nimport clr\nclr.AddReference(\"RevitAPI\")\nclr.AddReference(\"RevitServices\")\nclr.AddReference(\"RevitNodes\")\n\nfrom Autodesk.Revit.DB import (\n    FilteredElementCollector, BuiltInCategory,\n    BoundingBoxXYZ, XYZ, ElementId,\n)\nfrom Autodesk.Revit.DB.Plumbing import PipeInsulation\nfrom Autodesk.Revit.DB.Mechanical import DuctInsulation\nfrom RevitServices.Persistence import DocumentManager\n\nimport Revit\nclr.ImportExtensions(Revit.Elements)\n\ndoc = DocumentManager.Instance.CurrentDBDocument\nFPM = 1.0 / 304.8\n\nSUP = {\n    int(BuiltInCategory.OST_PipeCurves),\n    int(BuiltInCategory.OST_DuctCurves),\n}\n\ndef uw(e):\n    try: return e.InternalElement\n    except: return e\n\ndef uwl(els):\n    if not isinstance(els, (list, tuple)): els = [els]\n    return [uw(e) for e in els if e is not None]\n\ndef cid(e):\n    return e.Category.Id.IntegerValue if e.Category else -1\n\ndef f2m(ft): return ft / FPM\n\nclass Env(object):\n    __slots__ = (\"eid\",\"mnx\",\"mny\",\"mnz\",\"mxx\",\"mxy\",\"mxz\",\"ins\",\"cat\")\n    def __init__(s,eid,mnx,mny,mnz,mxx,mxy,mxz,ins,cat):\n        s.eid=eid;s.mnx=mnx;s.mny=mny;s.mnz=mnz\n        s.mxx=mxx;s.mxy=mxy;s.mxz=mxz;s.ins=ins;s.cat=cat\n    @property\n    def otz(s): return s.mxz\n    @property\n    def obz(s): return s.mnz\n    def oxy(s,o):\n        return s.mnx<o.mxx and s.mxx>o.mnx and s.mny<o.mxy and s.mxy>o.mny\n\ndef fi(doc,hid):\n    out=[]\n    for b,c in [(BuiltInCategory.OST_PipeInsulations,PipeInsulation),\n                (BuiltInCategory.OST_DuctInsulations,DuctInsulation)]:\n        try:\n            col=FilteredElementCollector(doc).OfCategory(b).WhereElementIsNotElementType().ToElements()\n            for i in col:\n                if i.HostElementId==hid: out.append(i)\n        except: pass\n    return out\n\ndef ge(elem,doc):\n    bb=elem.get_BoundingBox(None)\n    if bb is None: return None\n    hid=elem.Id\n    ins=fi(doc,hid)\n    hi=len(ins)>0\n    mnx,mny,mnz=bb.Min.X,bb.Min.Y,bb.Min.Z\n    mxx,mxy,mxz=bb.Max.X,bb.Max.Y,bb.Max.Z\n    for i in ins:\n        ib=i.get_BoundingBox(None)\n        if ib is None: continue\n        mnx=min(mnx,ib.Min.X);mny=min(mny,ib.Min.Y);mnz=min(mnz,ib.Min.Z)\n        mxx=max(mxx,ib.Max.X);mxy=max(mxy,ib.Max.Y);mxz=max(mxz,ib.Max.Z)\n    cn=elem.Category.Name if elem.Category else \"\"\n    return Env(hid.IntegerValue,mnx,mny,mnz,mxx,mxy,mxz,hi,cn)\n\nclass CZ(object):\n    __slots__=(\"sid\",\"oids\",\"me\",\"oes\",\"gap\",\"req\",\"wbz\",\"ox0\",\"ox1\",\"oy0\",\"oy1\",\"sk\")\n    def __init__(s,sid,me,oe,gap,req):\n        s.sid=sid;s.oids=[oe.eid];s.me=me;s.oes=[oe]\n        s.gap=gap;s.req=req;s.wbz=oe.obz\n        s.ox0=max(me.mnx,oe.mnx);s.ox1=min(me.mxx,oe.mxx)\n        s.oy0=max(me.mny,oe.mny);s.oy1=min(me.mxy,oe.mxy)\n        s.sk=None\n    @property\n    def ic(s): return s.gap<s.req\n    def mg(s,o):\n        s.oids.extend(o.oids);s.oes.extend(o.oes)\n        s.wbz=min(s.wbz,o.wbz);s.gap=min(s.gap,o.gap)\n        s.ox0=min(s.ox0,o.ox0);s.ox1=max(s.ox1,o.ox1)\n        s.oy0=min(s.oy0,o.oy0);s.oy1=max(s.oy1,o.oy1)\n\ndef det(se,oe,cm):\n    rq=cm*FPM;out={}\n    for m in se:\n        zs=[]\n        for o in oe:\n            if not m.oxy(o): continue\n            if m.mnz>=o.mxz: g=m.mnz-o.mxz\n            elif o.mnz>=m.mxz: g=o.mnz-m.mxz\n            else: g=-1.0\n            z=CZ(m.eid,m,o,g,rq)\n            if z.ic: zs.append(z)\n        if zs: out[m.eid]=zs\n    return out\n\ndef mz(cd,gm):\n    mg=gm*FPM\n    for sid,zs in cd.items():\n        if len(zs)<=1: continue\n        zs.sort(key=lambda z:z.ox0)\n        mr=[zs[0]]\n        for z in zs[1:]:\n            p=mr[-1]\n            if (z.ox0-p.ox1)<mg and (p.oy0<z.oy1 and p.oy1>z.oy0): p.mg(z)\n            else: mr.append(z)\n        cd[sid]=mr\n    return cd\n\ndef rpt(cd,sk):\n    ls=[];cc=0\n    ls.append(\"=\"*60)\n    ls.append(\"  MEP CLASH / CLEARANCE REPORT\")\n    ls.append(\"  Clearance target (incl. insulation)\")\n    ls.append(\"=\"*60)\n    ls.append(\"\")\n    if not cd and not sk:\n        ls.append(\"No clashes detected. All clear.\")\n        return \"\\n\".join(ls),0,len(sk)\n    for sid,zones in sorted(cd.items()):\n        for z in zones:\n            cc+=1\n            ls.append(\"[CLASH] Subject #{} ({})\".format(sid,z.me.cat))\n            ls.append(\"  vs Obstacle(s): {}\".format(\", \".join(\"#{}\".format(o) for o in z.oids)))\n            gm=f2m(z.gap);rm=f2m(z.req)\n            if z.gap<0: ls.append(\"  Gap: INTERSECTING\")\n            else: ls.append(\"  Gap: {:.0f} mm  (required: {:.0f} mm)\".format(gm,rm))\n            ls.append(\"  MEP top Z: {:.1f} mm | Obstacle bottom Z: {:.1f} mm\".format(f2m(z.me.otz),f2m(z.wbz)))\n            ls.append(\"  MEP insulated: {}\".format(\"Yes\" if z.me.ins else \"No\"))\n            for oe in z.oes:\n                ls.append(\"    Obs #{} ({}) insulated: {}\".format(oe.eid,oe.cat,\"Yes\" if oe.ins else \"No\"))\n            ls.append(\"\")\n    if sk:\n        ls.append(\"-\"*40)\n        ls.append(\"SKIPPED (unsupported type):\")\n        for sid,r,d in sk:\n            ls.append(\"  #{} - {} ({})\".format(sid,r,d))\n        ls.append(\"\")\n    sc=len(sk)\n    ls[4]=\"Clashes: {}  |  Skipped: {}\".format(cc,sc)\n    return \"\\n\".join(ls),cc,sc\n\n# ── MAIN ──\nsr=IN[0] if isinstance(IN[0],list) else [IN[0]] if IN[0] else []\nor_=IN[1] if isinstance(IN[1],list) else [IN[1]] if IN[1] else []\ncm=IN[2] if IN[2] is not None else 100\ngm=IN[3] if IN[3] is not None else 300\n\nss=uwl(sr);os=uwl(or_)\ner=[]\nif not ss: er.append(\"No MEP subjects selected.\")\nif not os: er.append(\"No obstacle models selected.\")\nif er:\n    OUT=[\"\\n\".join([\"ERROR: \"+e for e in er]),0,0]\nelse:\n    sup=[];sk=[]\n    for e in ss:\n        if cid(e) in SUP: sup.append(e)\n        else:\n            cn=e.Category.Name if e.Category else \"Unknown\"\n            sk.append((e.Id.IntegerValue,\"SKIP_NOT_PIPE_DUCT\",cn))\n    if not sup:\n        m=\"No supported MEP (Pipe/Duct) in selection.\"\n        if sk: m+=\"\\nSkipped: \"+\", \".join(\"#{} ({})\".format(s[0],s[2]) for s in sk)\n        OUT=[m,0,len(sk)]\n    else:\n        se=[v for v in [ge(e,doc) for e in sup] if v]\n        oe=[v for v in [ge(e,doc) for e in os] if v]\n        if not oe:\n            OUT=[\"ERROR: Could not read obstacle geometry.\",0,0]\n        else:\n            cd=det(se,oe,cm)\n            cd=mz(cd,gm)\n            txt,cc,sc=rpt(cd,sk)\n            OUT=[txt,cc,sc]\n",
+      "Engine": "IronPython2",
+      "VariableInputPorts": true,
+      "Id": "python-main-guid-0005",
+      "Inputs": [
+        {
+          "Id": "py-in0-guid",
+          "Name": "IN[0]",
+          "Description": "MEP subjects",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "py-in1-guid",
+          "Name": "IN[1]",
+          "Description": "Obstacle models",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "py-in2-guid",
+          "Name": "IN[2]",
+          "Description": "Clearance mm",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "py-in3-guid",
+          "Name": "IN[3]",
+          "Description": "Merge gap mm",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "py-out0-guid",
+          "Name": "OUT[0]",
+          "Description": "Clash report text",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "py-out1-guid",
+          "Name": "OUT[1]",
+          "Description": "Clash count",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "py-out2-guid",
+          "Name": "OUT[2]",
+          "Description": "Skip count",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Renamable": false,
+      "Name": "MEP Clash Detect (incl. insulation)",
+      "IsSetAsInput": false,
+      "IsSetAsOutput": false,
+      "Excluded": false,
+      "ShowGeometry": false,
+      "X": 550.0,
+      "Y": 250.0
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-report-guid-0010",
+      "Inputs": [
+        {
+          "Id": "watch-report-in-guid",
+          "Name": "",
+          "Description": "Node to evaluate",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-report-out-guid",
+          "Name": "",
+          "Description": "Watch contents",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Renamable": true,
+      "Name": "Clash Report",
+      "IsSetAsInput": false,
+      "IsSetAsOutput": true,
+      "Excluded": false,
+      "ShowGeometry": false,
+      "X": 1000.0,
+      "Y": 200.0
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-count-guid-0011",
+      "Inputs": [
+        {
+          "Id": "watch-count-in-guid",
+          "Name": "",
+          "Description": "Node to evaluate",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-count-out-guid",
+          "Name": "",
+          "Description": "Watch contents",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Renamable": true,
+      "Name": "Clash Count",
+      "IsSetAsInput": false,
+      "IsSetAsOutput": true,
+      "Excluded": false,
+      "ShowGeometry": false,
+      "X": 1000.0,
+      "Y": 400.0
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-skip-guid-0012",
+      "Inputs": [
+        {
+          "Id": "watch-skip-in-guid",
+          "Name": "",
+          "Description": "Node to evaluate",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-skip-out-guid",
+          "Name": "",
+          "Description": "Watch contents",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Renamable": true,
+      "Name": "Skipped Count",
+      "IsSetAsInput": false,
+      "IsSetAsOutput": true,
+      "Excluded": false,
+      "ShowGeometry": false,
+      "X": 1000.0,
+      "Y": 500.0
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "sel-subjects-out-0001",
+      "End": "py-in0-guid",
+      "Id": "conn-subj-py-001"
+    },
+    {
+      "Start": "sel-obstacles-out-0002",
+      "End": "py-in1-guid",
+      "Id": "conn-obs-py-002"
+    },
+    {
+      "Start": "num-clearance-out-0003",
+      "End": "py-in2-guid",
+      "Id": "conn-clr-py-003"
+    },
+    {
+      "Start": "num-mergegap-out-0004",
+      "End": "py-in3-guid",
+      "Id": "conn-mg-py-004"
+    },
+    {
+      "Start": "py-out0-guid",
+      "End": "watch-report-in-guid",
+      "Id": "conn-py-watch-rpt"
+    },
+    {
+      "Start": "py-out1-guid",
+      "End": "watch-count-in-guid",
+      "Id": "conn-py-watch-cnt"
+    },
+    {
+      "Start": "py-out2-guid",
+      "End": "watch-skip-in-guid",
+      "Id": "conn-py-watch-skp"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "2.13",
+      "Data": {}
+    }
+  ],
+  "Author": "MEP-Avoid-Agent",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.13.1.3887",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      { "Id": "sel-subjects-guid-0001", "Name": "1. Select MEP (Pipe/Duct)", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": false, "X": 100.0, "Y": 100.0 },
+      { "Id": "sel-obstacles-guid-0002", "Name": "2. Select Obstacles", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": false, "X": 100.0, "Y": 250.0 },
+      { "Id": "num-clearance-guid-0003", "Name": "3. Clearance (mm)", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": false, "X": 100.0, "Y": 400.0 },
+      { "Id": "num-mergegap-guid-0004", "Name": "4. Merge Gap (mm)", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": false, "X": 100.0, "Y": 500.0 },
+      { "Id": "python-main-guid-0005", "Name": "MEP Clash Detect", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": false, "X": 550.0, "Y": 250.0 },
+      { "Id": "watch-report-guid-0010", "Name": "Clash Report", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": false, "X": 1000.0, "Y": 200.0 },
+      { "Id": "watch-count-guid-0011", "Name": "Clash Count", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": false, "X": 1000.0, "Y": 400.0 },
+      { "Id": "watch-skip-guid-0012", "Name": "Skipped Count", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": false, "X": 1000.0, "Y": 500.0 }
+    ],
+    "Annotations": [
+      {
+        "Id": "group-inputs-guid",
+        "Title": "INPUTS (Dynamo Player)",
+        "DescriptionText": "These inputs appear in Dynamo Player UI",
+        "IsExpanded": true,
+        "WidthAdjustment": 0,
+        "HeightAdjustment": 0,
+        "Nodes": ["sel-subjects-guid-0001", "sel-obstacles-guid-0002", "num-clearance-guid-0003", "num-mergegap-guid-0004"],
+        "HasNestedGroups": false,
+        "Left": 60.0,
+        "Top": 50.0,
+        "Width": 400.0,
+        "Height": 520.0,
+        "FontSize": 24.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 100.0,
+        "InitialHeight": 470.0,
+        "TextblockHeight": 0.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "group-outputs-guid",
+        "Title": "OUTPUTS",
+        "DescriptionText": "Clash report results",
+        "IsExpanded": true,
+        "WidthAdjustment": 0,
+        "HeightAdjustment": 0,
+        "Nodes": ["watch-report-guid-0010", "watch-count-guid-0011", "watch-skip-guid-0012"],
+        "HasNestedGroups": false,
+        "Left": 960.0,
+        "Top": 150.0,
+        "Width": 300.0,
+        "Height": 420.0,
+        "FontSize": 24.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 200.0,
+        "InitialHeight": 370.0,
+        "TextblockHeight": 0.0,
+        "Background": "#FF71C6A8"
+      }
+    ],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}
