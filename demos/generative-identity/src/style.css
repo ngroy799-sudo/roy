@@ -1,0 +1,422 @@
+:root {
+  color-scheme: dark;
+  --ink: #0e1114;
+  --paper: #eef1f4;
+  --accent: #ff4d2e;
+  --secondary: #1ec8c8;
+  --mute: #2a323a;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-mono);
+  background: var(--ink);
+  color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 80% 10%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 55%),
+    radial-gradient(90% 70% at 10% 90%, color-mix(in oklab, var(--secondary) 18%, transparent), transparent 50%),
+    linear-gradient(160deg, color-mix(in oklab, var(--ink) 92%, #000) 0%, var(--ink) 45%, color-mix(in oklab, var(--mute) 55%, var(--ink)) 100%);
+}
+
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+  background-size: 120px 120px;
+  pointer-events: none;
+  animation: drift 28s linear infinite;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent 88%);
+}
+
+@keyframes drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 120px 80px;
+  }
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: center;
+  min-height: 100svh;
+  padding: clamp(1.25rem, 4vw, 3.5rem);
+  padding-bottom: clamp(2rem, 5vw, 4rem);
+}
+
+.hero__copy {
+  max-width: 34rem;
+  animation: rise 0.9s var(--ease-out) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.brand {
+  margin: 0 0 1.25rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.8rem, 8vw, 5.5rem);
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  color: var(--paper);
+}
+
+.headline {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.35rem, 2.6vw, 2rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: color-mix(in oklab, var(--paper) 88%, var(--accent));
+}
+
+.lede {
+  margin: 0 0 1.75rem;
+  max-width: 32ch;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: color-mix(in oklab, var(--paper) 72%, var(--mute));
+}
+
+.seed-form {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.seed-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.seed-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+#seed {
+  flex: 1 1 14rem;
+  min-width: 0;
+  border: 1px solid color-mix(in oklab, var(--paper) 22%, transparent);
+  background: color-mix(in oklab, var(--ink) 70%, transparent);
+  color: var(--paper);
+  font: 500 1rem/1.2 var(--font-mono);
+  padding: 0.9rem 1rem;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+#seed:focus {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--ink) 55%, #000);
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  padding: 0.9rem 1.2rem;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #140a08;
+}
+
+.btn--primary:hover {
+  background: color-mix(in oklab, var(--accent) 85%, white);
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: color-mix(in oklab, var(--paper) 28%, transparent);
+  color: var(--paper);
+}
+
+.btn--ghost:hover {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+
+.btn--accent {
+  background: var(--secondary);
+  color: #041414;
+}
+
+.btn--accent:hover {
+  background: color-mix(in oklab, var(--secondary) 82%, white);
+}
+
+.hero__mark {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  animation: rise 1s var(--ease-out) 0.12s both;
+}
+
+.mark-frame {
+  width: min(100%, 28rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--mute) 40%, transparent), transparent 60%);
+  transform-origin: center;
+}
+
+.mark-frame svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.mark-frame.regenerating {
+  opacity: 0.35;
+  transform: scale(0.96) rotate(-1.5deg);
+  filter: saturate(0.7);
+  transition: opacity 0.18s ease, transform 0.18s ease, filter 0.18s ease;
+}
+
+.mark-frame.revealed {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  filter: none;
+  animation: markPop 0.65s var(--ease-out);
+}
+
+@keyframes markPop {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.92) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+.mark-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: color-mix(in oklab, var(--paper) 55%, var(--mute));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.system {
+  position: relative;
+  z-index: 1;
+  padding: 0 clamp(1.25rem, 4vw, 3.5rem) clamp(3rem, 6vw, 5rem);
+  animation: rise 0.8s var(--ease-out) 0.2s both;
+}
+
+.system__head {
+  max-width: 36rem;
+  margin-bottom: 1.75rem;
+}
+
+.system__head h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -0.02em;
+}
+
+.system__head p {
+  margin: 0;
+  color: color-mix(in oklab, var(--paper) 65%, var(--mute));
+  line-height: 1.5;
+  font-size: 0.92rem;
+}
+
+.system__grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: clamp(1.25rem, 3vw, 2rem);
+  align-items: start;
+}
+
+.block h3 {
+  margin: 0 0 0.9rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.swatches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.swatch {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  text-align: left;
+  border: 0;
+  border-left: 4px solid var(--swatch);
+  background: color-mix(in oklab, var(--mute) 45%, transparent);
+  color: var(--paper);
+  padding: 0.7rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s var(--ease-out);
+}
+
+.swatch:hover {
+  background: color-mix(in oklab, var(--mute) 70%, transparent);
+  transform: translateX(3px);
+}
+
+.swatch__name {
+  font-weight: 500;
+}
+
+.swatch__value {
+  opacity: 0.7;
+}
+
+.pattern-preview {
+  width: 100%;
+  aspect-ratio: 1.2 / 1;
+  background-color: var(--ink);
+  background-size: 72px 72px;
+  border: 1px solid color-mix(in oklab, var(--paper) 14%, transparent);
+}
+
+.block-meta {
+  margin: 0.65rem 0 0;
+  font-size: 0.75rem;
+  color: color-mix(in oklab, var(--paper) 55%, var(--mute));
+}
+
+.export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.toast {
+  margin: 0.85rem 0 0;
+  min-height: 1.2em;
+  font-size: 0.78rem;
+  color: var(--accent);
+}
+
+.foot {
+  position: relative;
+  z-index: 1;
+  padding: 0 clamp(1.25rem, 4vw, 3.5rem) 2rem;
+}
+
+.foot p {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--paper) 35%, var(--mute));
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding-top: 2rem;
+  }
+
+  .hero__mark {
+    order: -1;
+  }
+
+  .mark-frame {
+    width: min(100%, 22rem);
+  }
+
+  .system__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atmosphere,
+  .hero__copy,
+  .hero__mark,
+  .system,
+  .mark-frame.revealed {
+    animation: none;
+  }
+
+  .btn:hover,
+  .swatch:hover {
+    transform: none;
+  }
+}
