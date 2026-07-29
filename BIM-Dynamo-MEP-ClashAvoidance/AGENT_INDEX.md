@@ -12,8 +12,10 @@
 |------|------|
 | `docs/ARCHITECTURE.md` | 系統架構、資料流、限制 |
 | `docs/USAGE_GUIDE.md` | Revit + Dynamo 操作步驟 |
+| `docs/REVIT_2023.md` | **鎖定 Revit 2023** 環境說明 |
 | `docs/NODE_GRAPH.md` | Dynamo 節點圖說明 |
 | `config/clearance_rules.json` | 淨距／避讓規則設定 |
+| `config/environment_revit2023.json` | Revit 2023 環境鎖定 |
 | `python/` | Dynamo Python Script 節點原始碼 |
 | `dynamo/MEP_AutoAvoid_ARC_STC.dyn` | 主 Dynamo 圖（可直接開） |
 | `samples/sample_clash_report.json` | 輸出報告範例 |
@@ -39,6 +41,7 @@
 
 ## 依賴
 
-- Autodesk Revit 2022+（建議 2023/2024）
-- Dynamo for Revit（對應版本）
+- **Autodesk Revit 2023**（本專案目標版本）
+- Dynamo for Revit（隨 Revit 2023 內建；Python 用 IronPython 2.7）
 - 建議 Package：`Clockwork`, `Rhythm`, `spring nodes`（可選，本專案 Python 為主）
+- 詳見 `docs/REVIT_2023.md`

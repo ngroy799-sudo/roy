@@ -23,7 +23,7 @@ except NameError:
     validated_plan, run_mode = [], "DetectOnly"
 
 from Autodesk.Revit.DB import ElementId
-from lib.revit_utils import get_doc, move_mep_curve_by_offset_mm
+from lib.revit_utils import get_doc, move_mep_curve_by_offset_mm, make_element_id
 
 
 def run(validated_plan, run_mode="DetectOnly"):
@@ -46,11 +46,8 @@ def run(validated_plan, run_mode="DetectOnly"):
             continue
         eid = item["mep_id"]
         try:
-            # Revit 2024+ uses ElementId(long); older uses int
-            try:
-                el = doc.GetElement(ElementId(eid))
-            except TypeError:
-                el = doc.GetElement(ElementId(int(eid)))
+            # Revit 2023: ElementId(int) + IntegerValue
+            el = doc.GetElement(make_element_id(eid))
             if el is None:
                 r["apply_status"] = "ElementNotFound"
                 results.append(r)

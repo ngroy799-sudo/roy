@@ -27,7 +27,7 @@ except NameError:
     selection, level_filter = None, ""
 
 from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory
-from lib.revit_utils import get_doc, load_rules, element_aabb_mm, mep_system_name, unwrap, category_enum
+from lib.revit_utils import get_doc, load_rules, element_aabb_mm, mep_system_name, unwrap, category_enum, element_id_int
 from lib.geometry_utils import classify_mep_family
 
 
@@ -85,7 +85,7 @@ def run(config_path, selection=None, level_filter=""):
             lvl = _level_name(el)
             if level_filter and level_filter not in lvl:
                 continue
-            eid = int(el.Id.IntegerValue) if hasattr(el.Id, "IntegerValue") else int(el.Id.Value)
+            eid = element_id_int(el)
             kind = classify_mep_family(cname + " " + cat)
             records.append({
                 "id": eid,

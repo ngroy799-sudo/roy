@@ -1,6 +1,7 @@
 # BIM Dynamo — MEP 自動避開 ARC / STC + 防重疊
 
-獨立專案資料夾：`BIM-Dynamo-MEP-ClashAvoidance/`
+獨立專案資料夾：`BIM-Dynamo-MEP-ClashAvoidance/`  
+**目標環境：Revit 2023**（Dynamo IronPython 2.7）— 詳見 [`docs/REVIT_2023.md`](docs/REVIT_2023.md)
 
 ## 做咩
 

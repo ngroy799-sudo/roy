@@ -1,4 +1,6 @@
-# Dynamo 組裝清單（Copy-Paste Checklist）
+# Dynamo 組裝清單（Copy-Paste Checklist）— Revit 2023
+
+目標：**Revit 2023** + Dynamo **IronPython2**。詳見 `docs/REVIT_2023.md`。
 
 在 Dynamo 新增 **Python Script** 節點，按順序貼上對應檔案內容，並設定 Inputs 數量。
 
@@ -21,7 +23,7 @@ import sys
 sys.path.append(r"F:\For Cursor\BIM-Dynamo-MEP-ClashAvoidance\python")
 ```
 
-（改成你實際放置專案的路徑。）
+（改成你實際放置專案的路徑。Revit 2023 下 IronPython2 支援呢種寫法。）
 
 ## 接線速查
 

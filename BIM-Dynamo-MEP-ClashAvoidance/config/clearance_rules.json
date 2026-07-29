@@ -1,8 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "MEP Auto Avoid ARC/STC + Overlap Guard",
+  "target_revit": "2023",
+  "target_dynamo_python": "IronPython2",
   "units": "mm",
-  "description": "淨距與避讓規則。Dynamo Python 模組會讀取此檔。",
+  "description": "淨距與避讓規則。Dynamo Python 模組會讀取此檔。鎖定 Revit 2023。",
   "link_name_keywords": {
     "ARC": ["ARC", "ARCH", "建築", "Architecture"],
     "STC": ["STC", "STR", "STRUCT", "結構", "Structural"]

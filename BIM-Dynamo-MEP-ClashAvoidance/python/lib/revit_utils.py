@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 revit_utils.py — Revit API helpers for Dynamo Python nodes.
-Designed for Dynamo for Revit (IronPython 2.7 or CPython3 engine).
+Target: Autodesk Revit 2023 + Dynamo IronPython 2.7 (CPython3 also OK).
 """
 from __future__ import print_function
 import json
@@ -29,6 +29,23 @@ try:
 except Exception:
     REVIT_AVAILABLE = False
     DocumentManager = None
+
+
+def element_id_int(element_or_id):
+    """Revit 2023-safe ElementId → int (IntegerValue)."""
+    eid = element_or_id
+    if hasattr(element_or_id, "Id") and not hasattr(element_or_id, "IntegerValue"):
+        eid = element_or_id.Id
+    if hasattr(eid, "IntegerValue"):
+        return int(eid.IntegerValue)
+    if hasattr(eid, "Value"):
+        return int(eid.Value)
+    return int(eid)
+
+
+def make_element_id(int_id):
+    """Revit 2023 ElementId from int."""
+    return ElementId(int(int_id))
 
 
 def get_doc():
@@ -117,7 +134,7 @@ def collect_category_records(host_doc, link_doc, transform, category_names, role
                 if aabb is None:
                     continue
                 records.append({
-                    "id": int(el.Id.IntegerValue) if hasattr(el.Id, "IntegerValue") else int(el.Id.Value),
+                    "id": element_id_int(el),
                     "category": cname,
                     "role": role,
                     "source": source_name,
