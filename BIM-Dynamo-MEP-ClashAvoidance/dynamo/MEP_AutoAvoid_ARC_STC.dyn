@@ -1,0 +1,235 @@
+{
+  "Uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "IsCustomNode": false,
+  "Description": "MEP auto-avoid ARC/STC obstacles and prevent model overlaps. Paste python/*.py into Python Script nodes per docs/NODE_GRAPH.md, or use File Path + exec loader nodes.",
+  "Name": "MEP_AutoAvoid_ARC_STC",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "input-config-path",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "out-config",
+          "Name": "",
+          "Description": "Config path",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Path to clearance_rules.json",
+      "InputValue": "F:/For Cursor/BIM-Dynamo-MEP-ClashAvoidance/config/clearance_rules.json"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "input-run-mode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "out-runmode",
+          "Name": "",
+          "Description": "Run mode",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "DetectOnly or DetectAndFix",
+      "InputValue": "DetectOnly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "input-arc-filter",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "out-arc",
+          "Name": "",
+          "Description": "ARC filter",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "ARC link name keyword",
+      "InputValue": "ARC"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "input-stc-filter",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "out-stc",
+          "Name": "",
+          "Description": "STC filter",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "STC link name keyword",
+      "InputValue": "STC"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleSlider",
+      "NodeType": "Number",
+      "Id": "input-clearance-scale",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "out-scale",
+          "Name": "",
+          "Description": "Clearance scale",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "ClearanceScale",
+      "InputValue": 1.0,
+      "Max": 3.0,
+      "Min": 0.5,
+      "Step": 0.1
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode",
+      "NodeType": "PythonScriptNode",
+      "Id": "py-loader-note",
+      "Inputs": [
+        {
+          "Id": "in-note",
+          "Name": "IN[0]",
+          "Description": "Unused",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "out-note",
+          "Name": "OUT",
+          "Description": "Setup instructions",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "SETUP: Create Python Script nodes and paste code from python/00..06. See docs/NODE_GRAPH.md and docs/USAGE_GUIDE.md",
+      "Script": "# MEP Auto Avoid ARC/STC — setup helper\n# 1) Set ConfigPath string to config/clearance_rules.json\n# 2) Create Python Script nodes and paste:\n#    python/00_collect_obstacles.py\n#    python/01_collect_mep.py\n#    python/02_clash_detect.py\n#    python/03_auto_offset_route.py\n#    python/04_overlap_guard.py\n#    python/05_apply_to_revit.py\n#    python/06_report.py\n# 3) Wire nodes as documented in docs/NODE_GRAPH.md\n# 4) First run with RunMode = DetectOnly\nOUT = 'Ready: paste python/00-06 into Python Script nodes. RunMode=DetectOnly first.'"
+    }
+  ],
+  "Connectors": [],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Thumbnail": "",
+  "Bindings": [],
+  "View": {
+    "Caml": "",
+    "NodeViews": [
+      {
+        "Id": "input-config-path",
+        "Name": "ConfigPath",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 100.0,
+        "Y": 100.0
+      },
+      {
+        "Id": "input-run-mode",
+        "Name": "RunMode",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 100.0,
+        "Y": 200.0
+      },
+      {
+        "Id": "input-arc-filter",
+        "Name": "ARC_Filter",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 100.0,
+        "Y": 300.0
+      },
+      {
+        "Id": "input-stc-filter",
+        "Name": "STC_Filter",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 100.0,
+        "Y": 400.0
+      },
+      {
+        "Id": "input-clearance-scale",
+        "Name": "ClearanceScale",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 100.0,
+        "Y": 500.0
+      },
+      {
+        "Id": "py-loader-note",
+        "Name": "SETUP_NOTE",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 500.0,
+        "Y": 250.0
+      }
+    ],
+    "Annotations": [
+      {
+        "Id": "anno-title",
+        "Title": "MEP Auto Avoid ARC / STC + Overlap Guard",
+        "Description": "Wire Python nodes 00→06. Prefer DetectOnly before DetectAndFix.",
+        "Left": 80.0,
+        "Top": 40.0,
+        "Width": 720.0,
+        "Height": 80.0,
+        "FontSize": 36,
+        "InitialTop": 40.0,
+        "InitialHeight": 80.0,
+        "TextblockHeight": 40.0,
+        "Background": "#4B4B4B"
+      }
+    ],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "project": "MEP Auto Avoid ARC/STC + Overlap Guard",
+  "units": "mm",
+  "description": "淨距與避讓規則。Dynamo Python 模組會讀取此檔。",
+  "link_name_keywords": {
+    "ARC": ["ARC", "ARCH", "建築", "Architecture"],
+    "STC": ["STC", "STR", "STRUCT", "結構", "Structural"]
+  },
+  "obstacle_categories": {
+    "ARC": [
+      "OST_Walls",
+      "OST_Floors",
+      "OST_Ceilings",
+      "OST_Roofs",
+      "OST_Columns",
+      "OST_Stairs"
+    ],
+    "STC": [
+      "OST_StructuralFraming",
+      "OST_StructuralColumns",
+      "OST_StructuralFoundation",
+      "OST_Floors"
+    ]
+  },
+  "mep_categories": [
+    "OST_DuctCurves",
+    "OST_PipeCurves",
+    "OST_CableTray",
+    "OST_Conduit",
+    "OST_DuctFitting",
+    "OST_PipeFitting",
+    "OST_CableTrayFitting",
+    "OST_ConduitFitting"
+  ],
+  "mep_movable_categories": [
+    "OST_DuctCurves",
+    "OST_PipeCurves",
+    "OST_CableTray",
+    "OST_Conduit"
+  ],
+  "clearance_mm": {
+    "default": 50,
+    "Duct_vs_STC": 150,
+    "Duct_vs_ARC": 100,
+    "Pipe_vs_STC": 100,
+    "Pipe_vs_ARC": 75,
+    "CableTray_vs_STC": 50,
+    "CableTray_vs_ARC": 50,
+    "Conduit_vs_STC": 40,
+    "Conduit_vs_ARC": 40,
+    "MEP_vs_MEP": 30,
+    "Equipment_vs_Any": 100
+  },
+  "routing": {
+    "prefer_offset_axis": "Z",
+    "axis_try_order": ["Z", "Y", "X", "-Z", "-Y", "-X"],
+    "max_offset_mm": 600,
+    "offset_step_mm": 50,
+    "max_candidates": 24,
+    "score_weights": {
+      "offset_length": 1.0,
+      "remaining_clash": 1000.0,
+      "axis_preference": 0.25
+    }
+  },
+  "overlap_guard": {
+    "enabled": true,
+    "include_mep_vs_mep": true,
+    "include_arc_vs_stc_warning": true,
+    "reject_fix_if_new_clash": true
+  },
+  "safety": {
+    "detect_only_default": true,
+    "skip_fittings_auto_move": true,
+    "skip_equipment_auto_move": true,
+    "one_transaction_per_element": true
+  },
+  "report": {
+    "default_output": "samples/last_run_report.json",
+    "also_csv": true
+  }
+}
