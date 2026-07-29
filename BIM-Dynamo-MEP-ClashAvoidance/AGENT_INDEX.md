@@ -12,12 +12,15 @@
 |------|------|
 | `docs/ARCHITECTURE.md` | 系統架構、資料流、限制 |
 | `docs/USAGE_GUIDE.md` | Revit + Dynamo 操作步驟 |
+| `docs/DYNAMO_PLAYER.md` | **Dynamo Player** 一鍵 Play 用法 |
 | `docs/REVIT_2023.md` | **鎖定 Revit 2023** 環境說明 |
 | `docs/NODE_GRAPH.md` | Dynamo 節點圖說明 |
 | `config/clearance_rules.json` | 淨距／避讓規則設定 |
 | `config/environment_revit2023.json` | Revit 2023 環境鎖定 |
 | `python/` | Dynamo Python Script 節點原始碼 |
+| `python/player_run_all.py` | Dynamo Player 一次過執行入口 |
 | `dynamo/MEP_AutoAvoid_ARC_STC.dyn` | 主 Dynamo 圖（可直接開） |
+| `dynamo/MEP_AutoAvoid_ARC_STC_Player.dyn` | **Dynamo Player** 專用圖 |
 | `samples/sample_clash_report.json` | 輸出報告範例 |
 
 ## 核心模組（python/）

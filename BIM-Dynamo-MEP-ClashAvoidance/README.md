@@ -33,6 +33,11 @@ python python/offline_pipeline.py
 
 ### Revit 流程（建議）
 
+**Dynamo Player（推薦）：** 見 [`docs/DYNAMO_PLAYER.md`](docs/DYNAMO_PLAYER.md)  
+用 `dynamo/MEP_AutoAvoid_ARC_STC_Player.dyn`，設 `ProjectRoot` 後直接 Play。
+
+**Dynamo 編輯器：**
+
 1. 開 MEP 模型，確認 ARC/STC 已 Link  
 2. 開 `dynamo/MEP_AutoAvoid_ARC_STC.dyn`  
 3. 按 `docs/NODE_GRAPH.md` 將 `python/00`–`06` 貼入 Python Script 節點並接線  
