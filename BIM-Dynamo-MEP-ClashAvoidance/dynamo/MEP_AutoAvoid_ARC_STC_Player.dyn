@@ -1,0 +1,272 @@
+{
+  "Uuid": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "IsCustomNode": false,
+  "Description": "Dynamo Player entry for MEP auto-avoid ARC/STC (Revit 2023). Set ProjectRoot then Play.",
+  "Name": "MEP_AutoAvoid_ARC_STC_Player",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-project-root",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-root", "Name": "", "Description": "ProjectRoot", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Project root folder containing python/ and config/",
+      "InputValue": "F:\\For Cursor\\BIM-Dynamo-MEP-ClashAvoidance"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-run-mode",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-mode", "Name": "", "Description": "RunMode", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "DetectOnly or DetectAndFix",
+      "InputValue": "DetectOnly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-arc",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-arc", "Name": "", "Description": "ARC_Filter", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "ARC link name keyword",
+      "InputValue": "ARC"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-stc",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-stc", "Name": "", "Description": "STC_Filter", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "STC link name keyword",
+      "InputValue": "STC"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleSlider",
+      "NodeType": "Number",
+      "Id": "in-scale",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-scale", "Name": "", "Description": "ClearanceScale", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Clearance scale multiplier",
+      "InputValue": 1.0,
+      "Max": 3.0,
+      "Min": 0.5,
+      "Step": 0.1
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-axis",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-axis", "Name": "", "Description": "PreferOffsetAxis", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Prefer offset axis Z/Y/X",
+      "InputValue": "Z"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleSlider",
+      "NodeType": "Number",
+      "Id": "in-max",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-max", "Name": "", "Description": "MaxOffsetMm", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Max offset mm",
+      "InputValue": 600.0,
+      "Max": 2000.0,
+      "Min": 50.0,
+      "Step": 50.0
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleSlider",
+      "NodeType": "Number",
+      "Id": "in-step",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-step", "Name": "", "Description": "OffsetStepMm", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Offset step mm",
+      "InputValue": 50.0,
+      "Max": 200.0,
+      "Min": 10.0,
+      "Step": 10.0
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector",
+      "NodeType": "Boolean",
+      "Id": "in-mep",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-mep", "Name": "", "Description": "IncludeMEPvsMEP", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Include MEP vs MEP clashes",
+      "InputValue": true
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-report",
+      "Inputs": [],
+      "Outputs": [{"Id": "o-report", "Name": "", "Description": "ReportPath", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Optional report path; empty uses samples/last_run_report.json",
+      "InputValue": ""
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode",
+      "NodeType": "PythonScriptNode",
+      "Engine": "IronPython2",
+      "Id": "py-player-loader",
+      "Inputs": [
+        {"Id": "pi0", "Name": "IN[0]", "Description": "ProjectRoot", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi1", "Name": "IN[1]", "Description": "RunMode", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi2", "Name": "IN[2]", "Description": "ARC_Filter", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi3", "Name": "IN[3]", "Description": "STC_Filter", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi4", "Name": "IN[4]", "Description": "ClearanceScale", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi5", "Name": "IN[5]", "Description": "PreferOffsetAxis", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi6", "Name": "IN[6]", "Description": "MaxOffsetMm", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi7", "Name": "IN[7]", "Description": "OffsetStepMm", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi8", "Name": "IN[8]", "Description": "IncludeMEPvsMEP", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "pi9", "Name": "IN[9]", "Description": "ReportPath", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}
+      ],
+      "Outputs": [
+        {"Id": "po0", "Name": "OUT", "Description": "Player results list", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}
+      ],
+      "Replication": "Disabled",
+      "Description": "Loads python/player_run_all.py from ProjectRoot",
+      "Script": "import sys, os\ndef _s(v):\n    if v is None:\n        return ''\n    return v.ToString() if hasattr(v, 'ToString') else str(v)\nroot = _s(IN[0]).strip().strip('\"')\npy = os.path.join(root, 'python')\nif not os.path.isdir(py):\n    OUT = ['ProjectRoot invalid (need python/ folder): ' + root, '', 0, 0, 0, None]\nelse:\n    if py not in sys.path:\n        sys.path.insert(0, py)\n    script = os.path.join(py, 'player_run_all.py')\n    ns = {'IN': IN, 'OUT': None}\n    f = open(script, 'r')\n    code = f.read()\n    f.close()\n    exec(code, ns)\n    OUT = ns.get('OUT')"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-summary",
+      "Inputs": [{"Id": "wi0", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Outputs": [{"Id": "wo0", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Summary output for Player"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-report",
+      "Inputs": [{"Id": "wi1", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Outputs": [{"Id": "wo1", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Report path output for Player"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-clashes",
+      "Inputs": [{"Id": "wi2", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Outputs": [{"Id": "wo2", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Clash count output for Player"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-0",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {"Id": "g0i0", "Name": "list", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "g0i1", "Name": "index", "Description": "", "UsingDefaultValue": true, "Level": 2, "UseLevels": false, "KeepListStructure": false, "DefaultValue": 0}
+      ],
+      "Outputs": [{"Id": "g0o", "Name": "item", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-1",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {"Id": "g1i0", "Name": "list", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "g1i1", "Name": "index", "Description": "", "UsingDefaultValue": true, "Level": 2, "UseLevels": false, "KeepListStructure": false, "DefaultValue": 1}
+      ],
+      "Outputs": [{"Id": "g1o", "Name": "item", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-2",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {"Id": "g2i0", "Name": "list", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "g2i1", "Name": "index", "Description": "", "UsingDefaultValue": true, "Level": 2, "UseLevels": false, "KeepListStructure": false, "DefaultValue": 2}
+      ],
+      "Outputs": [{"Id": "g2o", "Name": "item", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    }
+  ],
+  "Connectors": [
+    {"Start": "o-root", "End": "pi0", "Id": "c0"},
+    {"Start": "o-mode", "End": "pi1", "Id": "c1"},
+    {"Start": "o-arc", "End": "pi2", "Id": "c2"},
+    {"Start": "o-stc", "End": "pi3", "Id": "c3"},
+    {"Start": "o-scale", "End": "pi4", "Id": "c4"},
+    {"Start": "o-axis", "End": "pi5", "Id": "c5"},
+    {"Start": "o-max", "End": "pi6", "Id": "c6"},
+    {"Start": "o-step", "End": "pi7", "Id": "c7"},
+    {"Start": "o-mep", "End": "pi8", "Id": "c8"},
+    {"Start": "o-report", "End": "pi9", "Id": "c9"},
+    {"Start": "po0", "End": "g0i0", "Id": "c10"},
+    {"Start": "po0", "End": "g1i0", "Id": "c11"},
+    {"Start": "po0", "End": "g2i0", "Id": "c12"},
+    {"Start": "g0o", "End": "wi0", "Id": "c13"},
+    {"Start": "g1o", "End": "wi1", "Id": "c14"},
+    {"Start": "g2o", "End": "wi2", "Id": "c15"}
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Thumbnail": "",
+  "Bindings": [],
+  "View": {
+    "Caml": "",
+    "NodeViews": [
+      {"Id": "in-project-root", "Name": "ProjectRoot", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 50},
+      {"Id": "in-run-mode", "Name": "RunMode", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 130},
+      {"Id": "in-arc", "Name": "ARC_Filter", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 210},
+      {"Id": "in-stc", "Name": "STC_Filter", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 290},
+      {"Id": "in-scale", "Name": "ClearanceScale", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 370},
+      {"Id": "in-axis", "Name": "PreferOffsetAxis", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 450},
+      {"Id": "in-max", "Name": "MaxOffsetMm", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 530},
+      {"Id": "in-step", "Name": "OffsetStepMm", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 610},
+      {"Id": "in-mep", "Name": "IncludeMEPvsMEP", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 690},
+      {"Id": "in-report", "Name": "ReportPath", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 770},
+      {"Id": "py-player-loader", "Name": "PlayerRunner", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 420, "Y": 300},
+      {"Id": "get-0", "Name": "GetSummary", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 200},
+      {"Id": "get-1", "Name": "GetReportPath", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 320},
+      {"Id": "get-2", "Name": "GetClashCount", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 440},
+      {"Id": "watch-summary", "Name": "Summary", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 200},
+      {"Id": "watch-report", "Name": "ReportPathOut", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 320},
+      {"Id": "watch-clashes", "Name": "ClashCount", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 440}
+    ],
+    "Annotations": [
+      {
+        "Id": "anno-player",
+        "Title": "Dynamo Player — MEP Avoid ARC/STC (Revit 2023)",
+        "Description": "Set ProjectRoot, RunMode=DetectOnly first, then Play.",
+        "Left": 40,
+        "Top": 0,
+        "Width": 900,
+        "Height": 40,
+        "FontSize": 28,
+        "InitialTop": 0,
+        "InitialHeight": 40,
+        "TextblockHeight": 30,
+        "Background": "#4B4B4B"
+      }
+    ],
+    "X": 0,
+    "Y": 0,
+    "Zoom": 0.85
+  }
+}
