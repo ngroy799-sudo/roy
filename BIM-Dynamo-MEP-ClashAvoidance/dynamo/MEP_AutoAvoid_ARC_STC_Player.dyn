@@ -115,8 +115,8 @@
       "Inputs": [],
       "Outputs": [{"Id": "o-report", "Name": "", "Description": "ReportPath", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
       "Replication": "Disabled",
-      "Description": "Optional report path; empty uses samples/last_run_report.json",
-      "InputValue": ""
+      "Description": "Optional report path; leave (auto) to use samples/last_run_report.json",
+      "InputValue": "(auto)"
     },
     {
       "ConcreteType": "PythonNodeModels.PythonNode",
@@ -139,8 +139,8 @@
         {"Id": "po0", "Name": "OUT", "Description": "Player results list", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}
       ],
       "Replication": "Disabled",
-      "Description": "Loads python/player_run_all.py from ProjectRoot",
-      "Script": "import sys, os\ndef _s(v):\n    if v is None:\n        return ''\n    return v.ToString() if hasattr(v, 'ToString') else str(v)\nroot = _s(IN[0]).strip().strip('\"')\npy = os.path.join(root, 'python')\nif not os.path.isdir(py):\n    OUT = ['ProjectRoot invalid (need python/ folder): ' + root, '', 0, 0, 0, None]\nelse:\n    if py not in sys.path:\n        sys.path.insert(0, py)\n    script = os.path.join(py, 'player_run_all.py')\n    ns = {'IN': IN, 'OUT': None}\n    f = open(script, 'r')\n    code = f.read()\n    f.close()\n    exec(code, ns)\n    OUT = ns.get('OUT')"
+      "Description": "Loads python/player_run_all.py from ProjectRoot (Player-safe OUT)",
+      "Script": "import sys, os\ndef _s(v):\n    if v is None:\n        return ''\n    try:\n        return v.ToString() if hasattr(v, 'ToString') else str(v)\n    except:\n        return str(v)\nroot = _s(IN[0]).strip().strip('\"')\npy = os.path.join(root, 'python')\nif not root or not os.path.isdir(py):\n    OUT = ['ProjectRoot invalid: ' + root, '', 0, 0, 'Set ProjectRoot to folder with python/ and config/', 'ERROR']\nelse:\n    if py not in sys.path:\n        sys.path.insert(0, py)\n    script = os.path.join(py, 'player_run_all.py')\n    ns = {'IN': IN, 'OUT': None}\n    f = open(script, 'r')\n    code = f.read()\n    f.close()\n    try:\n        exec(code, ns)\n        out = ns.get('OUT')\n        if out is None or not isinstance(out, list) or len(out) < 6:\n            OUT = ['Bad OUT from player_run_all', '', 0, 0, 'Script did not return 6 items', 'ERROR']\n        else:\n            OUT = [ _s(out[0]), _s(out[1]), int(out[2] or 0), int(out[3] or 0), _s(out[4]) or 'none', _s(out[5]) or 'OK' ]\n    except Exception as ex:\n        OUT = ['Loader exception: ' + str(ex), '', 0, 0, str(ex), 'ERROR']"
     },
     {
       "ConcreteType": "CoreNodeModels.Watch",
@@ -167,7 +167,25 @@
       "Inputs": [{"Id": "wi2", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
       "Outputs": [{"Id": "wo2", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
       "Replication": "Disabled",
-      "Description": "Clash count output for Player"
+      "Description": "Total clash count"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-mep",
+      "Inputs": [{"Id": "wi3", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Outputs": [{"Id": "wo3", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "MEP vs MEP clash count"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-warn",
+      "Inputs": [{"Id": "wi4", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Outputs": [{"Id": "wo4", "Name": "", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "Replication": "Disabled",
+      "Description": "Warnings text"
     },
     {
       "ConcreteType": "CoreNodeModels.GetItemAtIndex",
@@ -204,6 +222,30 @@
       "Outputs": [{"Id": "g2o", "Name": "item", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
       "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
       "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-3",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {"Id": "g3i0", "Name": "list", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "g3i1", "Name": "index", "Description": "", "UsingDefaultValue": true, "Level": 2, "UseLevels": false, "KeepListStructure": false, "DefaultValue": 3}
+      ],
+      "Outputs": [{"Id": "g3o", "Name": "item", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-4",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {"Id": "g4i0", "Name": "list", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false},
+        {"Id": "g4i1", "Name": "index", "Description": "", "UsingDefaultValue": true, "Level": 2, "UseLevels": false, "KeepListStructure": false, "DefaultValue": 4}
+      ],
+      "Outputs": [{"Id": "g4o", "Name": "item", "Description": "", "UsingDefaultValue": false, "Level": 2, "UseLevels": false, "KeepListStructure": false}],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
     }
   ],
   "Connectors": [
@@ -220,9 +262,13 @@
     {"Start": "po0", "End": "g0i0", "Id": "c10"},
     {"Start": "po0", "End": "g1i0", "Id": "c11"},
     {"Start": "po0", "End": "g2i0", "Id": "c12"},
+    {"Start": "po0", "End": "g3i0", "Id": "c16"},
+    {"Start": "po0", "End": "g4i0", "Id": "c17"},
     {"Start": "g0o", "End": "wi0", "Id": "c13"},
     {"Start": "g1o", "End": "wi1", "Id": "c14"},
-    {"Start": "g2o", "End": "wi2", "Id": "c15"}
+    {"Start": "g2o", "End": "wi2", "Id": "c15"},
+    {"Start": "g3o", "End": "wi3", "Id": "c18"},
+    {"Start": "g4o", "End": "wi4", "Id": "c19"}
   ],
   "Dependencies": [],
   "NodeLibraryDependencies": [],
@@ -242,21 +288,25 @@
       {"Id": "in-mep", "Name": "IncludeMEPvsMEP", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 690},
       {"Id": "in-report", "Name": "ReportPath", "IsSetAsInput": true, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 50, "Y": 770},
       {"Id": "py-player-loader", "Name": "PlayerRunner", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 420, "Y": 300},
-      {"Id": "get-0", "Name": "GetSummary", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 200},
-      {"Id": "get-1", "Name": "GetReportPath", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 320},
-      {"Id": "get-2", "Name": "GetClashCount", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 440},
-      {"Id": "watch-summary", "Name": "Summary", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 200},
-      {"Id": "watch-report", "Name": "ReportPathOut", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 320},
-      {"Id": "watch-clashes", "Name": "ClashCount", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 440}
+      {"Id": "get-0", "Name": "GetSummary", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 160},
+      {"Id": "get-1", "Name": "GetReportPath", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 260},
+      {"Id": "get-2", "Name": "GetClashCount", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 360},
+      {"Id": "get-3", "Name": "GetMepVsMep", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 460},
+      {"Id": "get-4", "Name": "GetWarnings", "IsSetAsInput": false, "IsSetAsOutput": false, "Excluded": false, "ShowGeometry": true, "X": 720, "Y": 560},
+      {"Id": "watch-summary", "Name": "Summary", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 160},
+      {"Id": "watch-report", "Name": "ReportPathOut", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 260},
+      {"Id": "watch-clashes", "Name": "ClashCount", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 360},
+      {"Id": "watch-mep", "Name": "MepVsMepCount", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 460},
+      {"Id": "watch-warn", "Name": "Warnings", "IsSetAsInput": false, "IsSetAsOutput": true, "Excluded": false, "ShowGeometry": true, "X": 980, "Y": 560}
     ],
     "Annotations": [
       {
         "Id": "anno-player",
-        "Title": "Dynamo Player — MEP Avoid ARC/STC (Revit 2023)",
-        "Description": "Set ProjectRoot, RunMode=DetectOnly first, then Play.",
+        "Title": "Dynamo Player — MEP vs ARC/STC/MEP (Revit 2023)",
+        "Description": "IncludeMEPvsMEP=true. Set ProjectRoot, RunMode=DetectOnly, Play. Read Warnings output.",
         "Left": 40,
         "Top": 0,
-        "Width": 900,
+        "Width": 980,
         "Height": 40,
         "FontSize": 28,
         "InitialTop": 0,

@@ -7,7 +7,8 @@
   "description": "淨距與避讓規則。Dynamo Python 模組會讀取此檔。鎖定 Revit 2023。",
   "link_name_keywords": {
     "ARC": ["ARC", "ARCH", "建築", "Architecture"],
-    "STC": ["STC", "STR", "STRUCT", "結構", "Structural"]
+    "STC": ["STC", "STR", "STRUCT", "結構", "Structural"],
+    "MEP": ["MEP", "MECH", "ELEC", "PLUMB", "HVAC", "機電", "消防", "給排水"]
   },
   "obstacle_categories": {
     "ARC": [
@@ -34,6 +35,18 @@
     "OST_PipeFitting",
     "OST_CableTrayFitting",
     "OST_ConduitFitting"
+  ],
+  "mep_check_categories": [
+    "OST_DuctAccessory",
+    "OST_PipeAccessory",
+    "OST_MechanicalEquipment",
+    "OST_ElectricalEquipment",
+    "OST_PlumbingFixtures",
+    "OST_DuctTerminal",
+    "OST_Sprinklers",
+    "OST_CableTrayFitting",
+    "OST_FlexDuctCurves",
+    "OST_FlexPipeCurves"
   ],
   "mep_movable_categories": [
     "OST_DuctCurves",
