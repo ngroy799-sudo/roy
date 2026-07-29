@@ -1,9 +1,9 @@
 # SCOPE：Revit 2023 Dynamo — MEP 向下 Fitting 避開選定模型
 
 **專案代碼**：`revit-dynamo-mep-avoid-2023`  
-**狀態**：`SCOPE_LOCKED_PARTIAL`（核心規則已確認；少數細節待答）  
+**狀態**：`SCOPE_LOCKED`（核心規格已確認；可進 Phase 1）  
 **Revit**：2023  
-**本階段交付**：更新後 SCOPE + 決策紀錄（尚未實作 `.dyn`）
+**本階段交付**：SCOPE + 決策 + `TECH_DESIGN.md`（尚未實作 `.dyn`）
 
 ---
 
@@ -20,7 +20,7 @@
 | **Subject（MEP）** | 被繞行改線的機電曲線元素 | Pipe / Duct / Cable Tray / Conduit（類型優先順序見開放問題） |
 | **Obstacle** | 障礙物 | **使用者已點選的所有模型元素**（可含 ARC / STC / 其他 MEP / Generic Model 等） |
 | **向下 Fitting 避開** | 只允許向下折繞 | 在衝突區前下彎 → 水平段在障礙下方通過 → 再上彎接回原標高（典型 U 形下沉） |
-| **上下表面淨空** | 垂直方向表面間距 | **≥ 100 mm（10 cm）**（MEP 外表面 ↔ 障礙相關表面） |
+| **上下表面淨空** | 垂直方向表面間距（含保溫） | 障礙外底面 ↔ 下沉 MEP 外頂面 **≥ 100 mm** |
 
 ---
 
@@ -31,7 +31,10 @@
 | R1 | **不移動**障礙物及其他非 Subject 部位 |
 | R2 | MEP **只向下**生成 Fitting 來避開相撞位置（不做側向／向上優先繞行） |
 | R3 | 主要閃避對象 = **已點選的所有 Model**（手動選取為準） |
-| R4 | 垂直方向：**上下表面相距 10 cm** |
+| R4 | 垂直方向：**上下表面相距 10 cm**，**含保溫**外表面 |
+| R5 | 下沉後兩端 **必須** 接回原標高 |
+| R6 | 下方空間不足 → **跳過並記錄**，不改該段 |
+| R7 | 第一版 Subject 類型：**Pipe + Duct** |
 
 ---
 
@@ -125,38 +128,21 @@
 
 ---
 
-## 9. 開放問題（剩餘）
+## 9. 開放問題（不擋 Phase 1）
 
-已由本次指示關閉：Q1→向下 Fitting；Q2→只改 MEP、不移其他；Q3→已點選模型；Q4→10 cm。
+已關閉：Q1–Q4、Q6–Q8、Q12–Q13（見 `DECISIONS.md`）。
 
-仍請回覆：
+可之後再答：
 
 ### Q5. Linked Model
-已點選的障礙若來自 Link，是否納入？（只讀避開 / 忽略 Link）
-
-### Q6. MEP 類型第一版做哪些？
-Pipe / Duct / Cable Tray / Conduit / 全部
-
-### Q7. 避開失敗（無法連接到系統、無對應 Elbow 類型等）
-跳過並記錄 / 整批中止
-
-### Q8. 「上下表面」量測基準（請選最接近的）
-- A) 障礙 **底面** ↔ 下沉 MEP **頂面** ≥ 100 mm（最符合「從下方閃過」）  
-- B) 兩元素 BoundingBox 的 Z 間隙 ≥ 100 mm  
-- C) 其他（請描述，例如含保溫 Insulation）
+已點選障礙若來自 Link：只讀避開 / 忽略 Link？
 
 ### Q9. 執行方式
 手動 Dynamo / Dynamo Player
 
-### Q10. 有無公司 Elbow／標準 Fitting 家族或範例模型？
+### Q10. 公司標準 Elbow／Fitting 家族或範例模型？
 
-### Q11. Revit.exe 是否為  
-`C:\Program Files\Autodesk\Revit 2023\Revit.exe`？
-
-### Q12. 下沉後是否必須回到原標高接回兩端？（預設：**是**）
-
-### Q13. 若障礙下方空間不足 100 mm（例如碰到樓板），要怎樣？
-報錯跳過 / 允許貼地但警告 / 其他
+### Q11. Revit.exe 是否為 `C:\Program Files\Autodesk\Revit 2023\Revit.exe`？
 
 ---
 
@@ -164,26 +150,26 @@ Pipe / Duct / Cable Tray / Conduit / 全部
 
 | 階段 | 內容 |
 |------|------|
-| **Phase 0** | SCOPE + 決策（進行中） |
-| **Phase 1** | 衝突／100 mm 淨空偵測 + 報告 |
-| **Phase 2** | 單段水平 MEP 向下 Fitting drop-under |
-| **Phase 3** | 多障礙、連續衝突段、失敗處理強化 |
+| **Phase 0** | SCOPE + 決策 + TECH_DESIGN（完成） |
+| **Phase 1** | 含保溫淨空偵測 + ReportOnly |
+| **Phase 2** | Pipe／Duct 向下 Fitting drop-under |
+| **Phase 3** | 多障礙合併、Tray/Conduit、失敗強化 |
 | **Phase 4** | Dynamo Player／報表包裝 |
+
+詳見 `docs/TECH_DESIGN.md`。
 
 ---
 
 ## 11. 風險
 
-- 自動放置 Fitting 依賴專案內 Elbow／Transition 類型是否齊全。
-- 改 MEP 曲線可能暫時斷開系統連接，需在同一 Transaction 內重建連接。
-- 「只向下」在下方空間不足時必然失敗，需明確失敗策略（Q13）。
-- 保溫層、坡度管會影響「表面」定義（Q8）。
-- 雲端無法開你本機 Revit；實作後需本機驗證。
+- 自動放置 Fitting 依賴專案內 Elbow 類型是否齊全 → 不足則跳過並記錄。
+- 改 MEP 需在 Transaction 內重建連接。
+- 下方空間不足 → 跳過（已定）。
+- 保溫外尺寸取法因家族而異，需本機樣板驗證。
+- 雲端無法開本機 Revit；實作後需本機驗證。
 
 ---
 
 ## 12. 下一步
 
-1. 你回覆 **Q5–Q13**（最少：**Q6、Q8、Q12、Q13**）。  
-2. 我更新 `DECISIONS.md` 並產出 `TECH_DESIGN.md`。  
-3. 再開始 Phase 1/2 的 Dynamo／Python 骨架。
+規格已鎖定。你回覆 **「開始 Phase 1」**（或一次做 Phase 1+2）後，即建立 Python 骨架與 ReportOnly Dynamo 說明／腳本。

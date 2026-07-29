@@ -2,23 +2,28 @@
 
 ## Keywords
 
-- Revit 2023, Dynamo, MEP, downward fitting, drop-under, elbow, clearance 100mm, 10cm
-- 避開, 向下, Fitting, 彎頭, 已點選, 不移動障礙, 上下表面, 淨空
-- Pipe, Duct, Cable Tray, Conduit, Connector, MEPCurve
+- Revit 2023, Dynamo, MEP, Pipe, Duct, downward fitting, drop-under, insulation, clearance 100mm
+- 避開, 向下 Fitting, 含保溫, 跳過並記錄, 接回原標高
+- PipeInsulation, DuctInsulation, Elbow, Connector, MEPCurve
 
-## Locked rules
+## Locked rules (ADR-001..007)
 
-1. Do not move obstacles or other non-subject parts.
-2. MEP avoids by generating fittings **downward only**.
-3. Obstacles = all user-selected model elements.
-4. Vertical surface clearance target = **100 mm**.
+1. Never move obstacles / non-subject.
+2. Downward fittings only.
+3. Obstacles = user-selected models.
+4. Clearance 100 mm.
+5. Measure outer surfaces **including insulation**.
+6. Both ends return to original elevation.
+7. Insufficient space → skip and log.
+8. Phase 1–2 subjects = Pipe + Duct.
 
 ## Canonical files
 
 - `docs/SCOPE.md`
-- `docs/DECISIONS.md` (ADR-001..005)
+- `docs/DECISIONS.md`
+- `docs/TECH_DESIGN.md`
 - `docs/ASSUMPTIONS.md`
 
 ## Phase
 
-`SCOPE_LOCKED_PARTIAL` — await Q6/Q8/Q12/Q13 before TECH_DESIGN / implementation.
+`TECH_DESIGN` ready — implement Phase 1 on user go-ahead.
