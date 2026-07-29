@@ -37,7 +37,7 @@ body {
 .page {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: clip;
   background:
     radial-gradient(120% 80% at 80% 10%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 55%),
     radial-gradient(90% 70% at 10% 90%, color-mix(in oklab, var(--secondary) 18%, transparent), transparent 50%),
@@ -95,10 +95,11 @@ body {
   margin: 0 0 1.25rem;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(2.8rem, 8vw, 5.5rem);
-  letter-spacing: -0.04em;
-  line-height: 0.9;
+  font-size: clamp(2.4rem, 6.2vw, 4.25rem);
+  letter-spacing: -0.045em;
+  line-height: 0.95;
   color: var(--paper);
+  max-width: 100%;
 }
 
 .headline {
@@ -132,14 +133,14 @@ body {
 }
 
 .seed-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.65rem;
   align-items: stretch;
 }
 
 #seed {
-  flex: 1 1 14rem;
+  width: 100%;
   min-width: 0;
   border: 1px solid color-mix(in oklab, var(--paper) 22%, transparent);
   background: color-mix(in oklab, var(--ink) 70%, transparent);
@@ -399,6 +400,18 @@ body {
 
   .mark-frame {
     width: min(100%, 22rem);
+  }
+
+  .brand {
+    font-size: clamp(1.85rem, 9vw, 2.75rem);
+  }
+
+  .seed-row {
+    grid-template-columns: 1fr;
+  }
+
+  .btn--primary {
+    width: 100%;
   }
 
   .system__grid {
