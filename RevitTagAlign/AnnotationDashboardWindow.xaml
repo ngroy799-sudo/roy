@@ -1,0 +1,84 @@
+<Window x:Class="RevitTagAlign.AnnotationDashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Annotation Dashboard" Height="450" Width="350"
+        WindowStartupLocation="CenterScreen" Topmost="True" ResizeMode="CanResizeWithGrip">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Annotation Dashboard" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+
+        <!-- Scope -->
+        <GroupBox Grid.Row="1" Header="Apply To" Margin="0,0,0,8">
+            <StackPanel Margin="4">
+                <RadioButton x:Name="rbSelected" Content="Selected Tags" IsChecked="True" Margin="0,2"/>
+                <RadioButton x:Name="rbVisible" Content="All Visible Tags" Margin="0,2"/>
+                <RadioButton x:Name="rbNew" Content="New Tags (Auto-apply)" Margin="0,2"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Leader Angle -->
+        <GroupBox Grid.Row="2" Header="Leader Angle" Margin="0,0,0,8">
+            <StackPanel Margin="4">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Angle (°):" VerticalAlignment="Center" Width="80"/>
+                    <Slider x:Name="sliderAngle" Minimum="0" Maximum="90" Value="45" Width="150"
+                            ValueChanged="SliderAngle_Changed" TickFrequency="5" IsSnapToTickEnabled="True"/>
+                    <TextBlock x:Name="txtAngleValue" Text="45" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Landing Distance -->
+        <GroupBox Grid.Row="3" Header="Landing Distance" Margin="0,0,0,8">
+            <StackPanel Margin="4">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Distance:" VerticalAlignment="Center" Width="80"/>
+                    <Slider x:Name="sliderLanding" Minimum="0" Maximum="50" Value="10" Width="150"
+                            ValueChanged="SliderLanding_Changed" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                    <TextBlock x:Name="txtLandingValue" Text="10" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <TextBlock Text=" mm" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Leader Length -->
+        <GroupBox Grid.Row="4" Header="Leader Length" Margin="0,0,0,8">
+            <StackPanel Margin="4">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Length:" VerticalAlignment="Center" Width="80"/>
+                    <Slider x:Name="sliderLength" Minimum="5" Maximum="100" Value="20" Width="150"
+                            ValueChanged="SliderLength_Changed" TickFrequency="5" IsSnapToTickEnabled="True"/>
+                    <TextBlock x:Name="txtLengthValue" Text="20" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <TextBlock Text=" mm" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Quick Presets -->
+        <GroupBox Grid.Row="5" Header="Quick Presets" Margin="0,0,0,8">
+            <WrapPanel Margin="4">
+                <Button Content="45° Standard" Margin="2" Padding="8,4" Click="Preset45_Click"/>
+                <Button Content="60° Steep" Margin="2" Padding="8,4" Click="Preset60_Click"/>
+                <Button Content="30° Shallow" Margin="2" Padding="8,4" Click="Preset30_Click"/>
+                <Button Content="Horizontal" Margin="2" Padding="8,4" Click="PresetHoriz_Click"/>
+            </WrapPanel>
+        </GroupBox>
+
+        <!-- Apply -->
+        <StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Apply Now" Width="90" Margin="0,0,8,0" Click="Apply_Click" FontWeight="Bold"/>
+            <Button Content="Close" Width="70" Click="Close_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
