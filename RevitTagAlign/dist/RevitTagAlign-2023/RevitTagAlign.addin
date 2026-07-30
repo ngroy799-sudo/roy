@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Tag Align Tool</Name>
+    <Assembly>RevitTagAlign.dll</Assembly>
+    <FullClassName>RevitTagAlign.App</FullClassName>
+    <ClientId>A1B2C3D4-E5F6-7890-ABCD-EF1234567890</ClientId>
+    <VendorId>CustomDev</VendorId>
+    <VendorDescription>Custom Tag Alignment Tool for Revit 2023</VendorDescription>
+  </AddIn>
+</RevitAddIns>

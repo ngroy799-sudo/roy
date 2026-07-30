@@ -1,0 +1,5 @@
+Install for Revit 2023:
+1. Copy RevitTagAlign.dll and RevitTagAlign.addin to:
+   %AppData%\Autodesk\Revit\Addins\2023\
+2. Restart Revit 2023
+3. Open ribbon tab: Tag Align
