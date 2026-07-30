@@ -32,17 +32,22 @@ Restart Revit 2023 → ribbon tab **Tag Align**.
 
 ### Settings persistence
 Configure values are saved on **Proceed** to:
-`%AppData%\RevitTagAlign\AlignConfig.xml`
+`%AppData%\Roaming\RevitTagAlign\AlignConfig.xml`
 and restored the next time you open Configure.
+
+### Align Tags Command (Configure dialog)
 Matches Bird Tools–style configure UI:
 - **4 corner presets**: Upper-Left / Upper-Right / Lower-Left / Lower-Right
-- **Pick Angle then Tag Position (Mouse)** — default ON:
-  1. Two clicks define the **red arrow angle** (angled leader)
-  2. One click sets the **tag text position** (stack origin)
+- **Pick Angle then Tag Position (2 clicks)** — default ON:
+  1. Click = **red arrow angle**
+  2. Click = **tag text position**
 - Yellow = horizontal landing; Red = parallel angled arrows
-- Options: Switch Pick Point Side, Attached End Tags, Keep Selection, Turn Snaps Off
+- **Force Attached End Tags**: ON = force Attached; OFF = keep original Attached/Free
+- Options: Switch Pick Point Side, Keep Selection, Turn Snaps Off
 - TextNote justification, Constant Landing, Vertical / Intermittent spacing
 - Help / Proceed / Cancel
+
+**Shortcut:** Select tags first, then press KS shortcut (e.g. TA). After Configure, complete the 2 clicks.
 
 ### Annotation Dashboard (Modeless)
 - **Scope**: Apply to Selected Tags, All Visible Tags, or auto-apply to New Tags
