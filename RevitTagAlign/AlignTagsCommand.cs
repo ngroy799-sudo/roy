@@ -36,33 +36,73 @@ namespace RevitTagAlign
 
                 ObjectSnapTypes snapTypes = cfg.TurnSnapsOff
                     ? ObjectSnapTypes.None
-                    : ObjectSnapTypes.Endpoints | ObjectSnapTypes.Intersections | ObjectSnapTypes.Nearest;
+                    : ObjectSnapTypes.Endpoints | ObjectSnapTypes.Intersections | ObjectSnapTypes.Nearest
+                      | ObjectSnapTypes.Perpendicular | ObjectSnapTypes.Midpoints;
 
-                XYZ pickPoint;
-                try
+                PickedAngle pickedAngle = null;
+                XYZ tagPosition;
+
+                if (cfg.PickAngleThenTagPosition)
                 {
-                    pickPoint = uidoc.Selection.PickPoint(snapTypes, "Pick alignment point on screen (•)");
+                    // Bird Tools style:
+                    // 1) Mouse-pick the RED arrow angle (two points along desired angled leader)
+                    // 2) Mouse-pick the TAG TEXT position (first tag head / yellow-landing side)
+                    XYZ angleP1;
+                    XYZ angleP2;
+                    try
+                    {
+                        angleP1 = uidoc.Selection.PickPoint(
+                            snapTypes,
+                            "1/2  Pick LEADER ANGLE — first point (start of red arrow / near elbow)");
+                        angleP2 = uidoc.Selection.PickPoint(
+                            snapTypes,
+                            "1/2  Pick LEADER ANGLE — second point (along red arrow toward element)");
+                    }
+                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                    {
+                        return Result.Cancelled;
+                    }
+
+                    pickedAngle = AlignmentEngine.ComputeAngleFromTwoPoints(angleP1, angleP2);
+
+                    try
+                    {
+                        tagPosition = uidoc.Selection.PickPoint(
+                            snapTypes,
+                            string.Format(
+                                "2/2  Pick TAG POSITION — first tag text location  [angle={0:0.#}°]",
+                                pickedAngle.AngleDegreesAbs));
+                    }
+                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                    {
+                        return Result.Cancelled;
+                    }
                 }
-                catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                else
                 {
-                    return Result.Cancelled;
+                    try
+                    {
+                        tagPosition = uidoc.Selection.PickPoint(
+                            snapTypes,
+                            "Pick TAG POSITION — first tag text location");
+                    }
+                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                    {
+                        return Result.Cancelled;
+                    }
                 }
 
                 using (Transaction tx = new Transaction(doc, "Align Tags"))
                 {
                     tx.Start();
-                    AlignmentEngine.Align(doc, items, pickPoint, cfg);
+                    AlignmentEngine.Align(doc, items, tagPosition, cfg, pickedAngle);
                     tx.Commit();
                 }
 
                 if (!cfg.KeepSelectionAfterUse)
-                {
                     uidoc.Selection.SetElementIds(new List<ElementId>());
-                }
                 else
-                {
                     uidoc.Selection.SetElementIds(items.Select(i => i.Element.Id).ToList());
-                }
 
                 return Result.Succeeded;
             }

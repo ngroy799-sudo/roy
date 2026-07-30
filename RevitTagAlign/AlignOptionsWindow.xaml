@@ -121,6 +121,8 @@
 
             <!-- Right options -->
             <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                <CheckBox x:Name="cbPickAngleMouse" Content="Pick Angle then Tag Position (Mouse)" IsChecked="True" Margin="0,4"
+                          ToolTip="1) Pick red arrow angle with 2 clicks  2) Pick tag text position"/>
                 <CheckBox x:Name="cbSwitchSide" Content="Switch Pick Point Side" Margin="0,4"/>
                 <CheckBox x:Name="cbAttachedEnd" Content="Attached End Tags" Margin="0,4"/>
                 <CheckBox x:Name="cbKeepSelection" Content="Keep Selection After Use" Margin="0,4"/>
@@ -150,7 +152,8 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Angle (Degrees - 0 To 90)" VerticalAlignment="Center" Margin="0,0,8,8"/>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Angle fallback (°)" VerticalAlignment="Center" Margin="0,0,8,8"
+                       ToolTip="Used only when 'Pick Angle then Tag Position' is OFF. When ON, angle comes from mouse (red arrow)."/>
             <Slider x:Name="sliderAngle" Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="90" Value="45"
                     TickFrequency="5" IsSnapToTickEnabled="False" VerticalAlignment="Center" Margin="0,0,8,8"
                     ValueChanged="SliderAngle_Changed"/>

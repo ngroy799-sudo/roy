@@ -52,16 +52,15 @@ namespace RevitTagAlign
         {
             MessageBox.Show(
                 "Tag Align Configure\n\n" +
-                "1. Choose a corner preset (Upper/Lower × Left/Right).\n" +
-                "2. Set leader angle, vertical spacing, and optional landing / intermittent spacing.\n" +
-                "3. Click Proceed, then pick a point on screen.\n" +
-                "4. Selected tags and text notes are stacked with parallel leaders.\n\n" +
-                "Switch Pick Point Side: flip leader side relative to the stack.\n" +
-                "Attached End Tags: keep tag leader ends attached to hosts.\n" +
-                "Keep Selection After Use: leave elements selected when done.\n" +
-                "Turn Snaps Off: temporarily disable snaps while picking.\n" +
-                "Constant Landing: force a fixed landing distance for all leaders.\n" +
-                "Intermittent Alignment: split into columns using Horizontal Spacing.",
+                "Bird Tools–style mouse picks (default ON):\n" +
+                "  1/2  Pick LEADER ANGLE — two clicks along the red arrow\n" +
+                "  2/2  Pick TAG POSITION — where the first tag text goes\n\n" +
+                "Geometry:\n" +
+                "  • Tag text = stacked at the tag position\n" +
+                "  • Yellow = horizontal landing (head → elbow)\n" +
+                "  • Red = angled arrow (elbow → element), all parallel\n\n" +
+                "Constant Landing: fixed yellow segment length (mm).\n" +
+                "Angle slider: fallback only when mouse angle pick is OFF.",
                 "Help",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -89,6 +88,7 @@ namespace RevitTagAlign
             else if (rbLL.IsChecked == true) cfg.Corner = CornerAlignment.LowerLeft;
             else cfg.Corner = CornerAlignment.LowerRight;
 
+            cfg.PickAngleThenTagPosition = cbPickAngleMouse.IsChecked == true;
             cfg.SwitchPickPointSide = cbSwitchSide.IsChecked == true;
             cfg.AttachedEndTags = cbAttachedEnd.IsChecked == true;
             cfg.KeepSelectionAfterUse = cbKeepSelection.IsChecked == true;
