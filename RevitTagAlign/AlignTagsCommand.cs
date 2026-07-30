@@ -1,7 +1,6 @@
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Autodesk.Revit.UI.Selection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,8 +39,16 @@ namespace RevitTagAlign
 
                 if (items.Count < 1)
                 {
-                    TaskDialog.Show("Tag Align",
-                        "Select one or more Tags / Text Notes first, then run Align Tags (or press your shortcut).");
+                    TaskDialog.Show("TagAlign",
+                        "Select one or more Tags / Text Notes first, then run TagAlign Align Selected Tags.");
+                    return Result.Cancelled;
+                }
+
+                // Work plane must exist BEFORE PickPoint (not caused by rename/KS changes).
+                string planeError;
+                if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
+                {
+                    TaskDialog.Show("TagAlign", planeError);
                     return Result.Cancelled;
                 }
 
@@ -54,7 +61,14 @@ namespace RevitTagAlign
 
                 ActivateRevitWindow(uiapp);
 
-                using (TransactionGroup tg = new TransactionGroup(doc, "Align Tags"))
+                // Re-ensure after dialog (some views clear context).
+                if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
+                {
+                    TaskDialog.Show("TagAlign", planeError);
+                    return Result.Cancelled;
+                }
+
+                using (TransactionGroup tg = new TransactionGroup(doc, "TagAlign Align"))
                 {
                     tg.Start();
 
@@ -65,16 +79,15 @@ namespace RevitTagAlign
                     {
                         if (cfg.PickAngleThenTagPosition)
                         {
-                            // Click 1: angle — immediately preview leader angle on current tag positions
                             XYZ hostCentroid = AlignmentEngine.AverageHostPoint(items);
-                            XYZ anglePoint = PickPointSafe(
+                            XYZ anglePoint = WorkPlaneHelper.PickPoint(
                                 uidoc, cfg,
                                 "Click 1/2: LEADER ANGLE (red arrow) — tags update after click");
 
                             pickedAngle = AlignmentEngine.ComputeAngleFromReferenceAndPoint(
                                 hostCentroid, anglePoint);
 
-                            using (Transaction txPreview = new Transaction(doc, "Preview Leader Angle"))
+                            using (Transaction txPreview = new Transaction(doc, "TagAlign Preview Angle"))
                             {
                                 txPreview.Start();
                                 AlignmentEngine.PreviewAngleAtCurrentPositions(items, cfg, pickedAngle);
@@ -84,8 +97,7 @@ namespace RevitTagAlign
                             Reselect(uidoc, items);
                             try { uidoc.RefreshActiveView(); } catch { }
 
-                            // Click 2: tag position — immediately apply final stacked layout
-                            tagPosition = PickPointSafe(
+                            tagPosition = WorkPlaneHelper.PickPoint(
                                 uidoc, cfg,
                                 string.Format(
                                     "Click 2/2: TAG POSITION — stack moves here  [angle={0:0.#} deg]",
@@ -93,7 +105,7 @@ namespace RevitTagAlign
                         }
                         else
                         {
-                            tagPosition = PickPointSafe(
+                            tagPosition = WorkPlaneHelper.PickPoint(
                                 uidoc, cfg,
                                 "Click: TAG POSITION (first tag text location)");
                         }
@@ -104,8 +116,15 @@ namespace RevitTagAlign
                         Reselect(uidoc, items);
                         return Result.Cancelled;
                     }
+                    catch (InvalidOperationException ioe)
+                    {
+                        tg.RollBack();
+                        Reselect(uidoc, items);
+                        TaskDialog.Show("TagAlign", ioe.Message);
+                        return Result.Cancelled;
+                    }
 
-                    using (Transaction txFinal = new Transaction(doc, "Align Tags Position"))
+                    using (Transaction txFinal = new Transaction(doc, "TagAlign Align Position"))
                     {
                         txFinal.Start();
                         AlignmentEngine.Align(doc, items, tagPosition, cfg, pickedAngle);
@@ -131,7 +150,7 @@ namespace RevitTagAlign
             catch (Exception ex)
             {
                 message = ex.Message;
-                TaskDialog.Show("Tag Align Error", ex.Message);
+                TaskDialog.Show("TagAlign Error", ex.Message);
                 return Result.Failed;
             }
         }
@@ -143,23 +162,6 @@ namespace RevitTagAlign
                 uidoc.Selection.SetElementIds(items.Select(i => i.Element.Id).ToList());
             }
             catch { }
-        }
-
-        private static XYZ PickPointSafe(UIDocument uidoc, AlignConfig cfg, string prompt)
-        {
-            if (cfg.TurnSnapsOff)
-            {
-                try
-                {
-                    return uidoc.Selection.PickPoint(ObjectSnapTypes.Points, prompt);
-                }
-                catch (Autodesk.Revit.Exceptions.ArgumentException)
-                {
-                    return uidoc.Selection.PickPoint(prompt);
-                }
-            }
-
-            return uidoc.Selection.PickPoint(prompt);
         }
 
         private static void TrySetRevitOwner(Window window, UIApplication uiapp)
