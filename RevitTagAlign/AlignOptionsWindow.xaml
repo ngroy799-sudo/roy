@@ -46,73 +46,77 @@
 
             <!-- Corner presets -->
             <UniformGrid Grid.Column="0" Rows="2" Columns="2" Margin="0,0,8,0">
+                <!-- Upper-Left: closest tag (SAMPLE 3) at bottom; • = its taghead; stack grows up -->
                 <RadioButton x:Name="rbUL" Style="{StaticResource CornerBtn}" IsChecked="True" GroupName="Corner">
                     <StackPanel Width="200">
                         <Canvas Width="180" Height="90">
                             <TextBlock Canvas.Left="8" Canvas.Top="4" Text="SAMPLE 1" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Canvas.Left="8" Canvas.Top="22" Text="SAMPLE 2" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Canvas.Left="8" Canvas.Top="40" Text="SAMPLE 3" FontSize="10" FontWeight="Bold"/>
-                            <Line X1="70" Y1="10" X2="150" Y2="10" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="150" Y1="10" X2="165" Y2="75" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="70" Y1="28" X2="150" Y2="28" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="150" Y1="28" X2="165" Y2="75" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="70" Y1="46" X2="150" Y2="46" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="150" Y1="46" X2="165" Y2="75" Stroke="Black" StrokeThickness="1"/>
-                            <Ellipse Canvas.Left="160" Canvas.Top="70" Width="8" Height="8" Fill="Black"/>
+                            <Line X1="70" Y1="10" X2="145" Y2="10" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="145" Y1="10" X2="168" Y2="72" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="70" Y1="28" X2="145" Y2="28" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="145" Y1="28" X2="168" Y2="72" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="70" Y1="46" X2="145" Y2="46" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="145" Y1="46" X2="168" Y2="72" Stroke="Black" StrokeThickness="1"/>
+                            <Ellipse Canvas.Left="66" Canvas.Top="42" Width="8" Height="8" Fill="Black"/>
                         </Canvas>
                         <TextBlock Text="• : POINT TO PICK ON SCREEN" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                     </StackPanel>
                 </RadioButton>
 
+                <!-- Upper-Right: closest tag at bottom; • = its taghead; stack grows up -->
                 <RadioButton x:Name="rbUR" Style="{StaticResource CornerBtn}" GroupName="Corner">
                     <StackPanel Width="200">
                         <Canvas Width="180" Height="90">
                             <TextBlock Canvas.Left="100" Canvas.Top="4" Text="SAMPLE 1" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Canvas.Left="100" Canvas.Top="22" Text="SAMPLE 2" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Canvas.Left="100" Canvas.Top="40" Text="SAMPLE 3" FontSize="10" FontWeight="Bold"/>
-                            <Line X1="100" Y1="10" X2="30" Y2="10" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="30" Y1="10" X2="15" Y2="75" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="100" Y1="28" X2="30" Y2="28" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="30" Y1="28" X2="15" Y2="75" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="100" Y1="46" X2="30" Y2="46" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="30" Y1="46" X2="15" Y2="75" Stroke="Black" StrokeThickness="1"/>
-                            <Ellipse Canvas.Left="10" Canvas.Top="70" Width="8" Height="8" Fill="Black"/>
+                            <Line X1="100" Y1="10" X2="35" Y2="10" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="35" Y1="10" X2="12" Y2="72" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="100" Y1="28" X2="35" Y2="28" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="35" Y1="28" X2="12" Y2="72" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="100" Y1="46" X2="35" Y2="46" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="35" Y1="46" X2="12" Y2="72" Stroke="Black" StrokeThickness="1"/>
+                            <Ellipse Canvas.Left="96" Canvas.Top="42" Width="8" Height="8" Fill="Black"/>
                         </Canvas>
                         <TextBlock Text="• : POINT TO PICK ON SCREEN" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                     </StackPanel>
                 </RadioButton>
 
+                <!-- Lower-Left: closest tag at top; • = its taghead; stack grows down -->
                 <RadioButton x:Name="rbLL" Style="{StaticResource CornerBtn}" GroupName="Corner">
                     <StackPanel Width="200">
                         <Canvas Width="180" Height="90">
-                            <Ellipse Canvas.Left="160" Canvas.Top="8" Width="8" Height="8" Fill="Black"/>
-                            <Line X1="165" Y1="15" X2="150" Y2="55" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="150" Y1="55" X2="70" Y2="55" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="165" Y1="15" X2="150" Y2="70" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="150" Y1="70" X2="70" Y2="70" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="165" Y1="15" X2="150" Y2="85" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="150" Y1="85" X2="70" Y2="85" Stroke="Black" StrokeThickness="1"/>
-                            <TextBlock Canvas.Left="8" Canvas.Top="48" Text="SAMPLE 1" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Canvas.Left="8" Canvas.Top="63" Text="SAMPLE 2" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Canvas.Left="8" Canvas.Top="78" Text="SAMPLE 3" FontSize="10" FontWeight="Bold"/>
+                            <Line X1="168" Y1="12" X2="145" Y2="40" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="145" Y1="40" X2="70" Y2="40" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="168" Y1="12" X2="145" Y2="58" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="145" Y1="58" X2="70" Y2="58" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="168" Y1="12" X2="145" Y2="76" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="145" Y1="76" X2="70" Y2="76" Stroke="Black" StrokeThickness="1"/>
+                            <TextBlock Canvas.Left="8" Canvas.Top="33" Text="SAMPLE 1" FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Canvas.Left="8" Canvas.Top="51" Text="SAMPLE 2" FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Canvas.Left="8" Canvas.Top="69" Text="SAMPLE 3" FontSize="10" FontWeight="Bold"/>
+                            <Ellipse Canvas.Left="66" Canvas.Top="36" Width="8" Height="8" Fill="Black"/>
                         </Canvas>
                         <TextBlock Text="• : POINT TO PICK ON SCREEN" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                     </StackPanel>
                 </RadioButton>
 
+                <!-- Lower-Right: closest tag at top; • = its taghead; stack grows down -->
                 <RadioButton x:Name="rbLR" Style="{StaticResource CornerBtn}" GroupName="Corner">
                     <StackPanel Width="200">
                         <Canvas Width="180" Height="90">
-                            <Ellipse Canvas.Left="10" Canvas.Top="8" Width="8" Height="8" Fill="Black"/>
-                            <Line X1="15" Y1="15" X2="30" Y2="55" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="30" Y1="55" X2="100" Y2="55" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="15" Y1="15" X2="30" Y2="70" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="30" Y1="70" X2="100" Y2="70" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="15" Y1="15" X2="30" Y2="85" Stroke="Black" StrokeThickness="1"/>
-                            <Line X1="30" Y1="85" X2="100" Y2="85" Stroke="Black" StrokeThickness="1"/>
-                            <TextBlock Canvas.Left="100" Canvas.Top="48" Text="SAMPLE 1" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Canvas.Left="100" Canvas.Top="63" Text="SAMPLE 2" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Canvas.Left="100" Canvas.Top="78" Text="SAMPLE 3" FontSize="10" FontWeight="Bold"/>
+                            <Line X1="12" Y1="12" X2="35" Y2="40" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="35" Y1="40" X2="110" Y2="40" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="12" Y1="12" X2="35" Y2="58" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="35" Y1="58" X2="110" Y2="58" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="12" Y1="12" X2="35" Y2="76" Stroke="Black" StrokeThickness="1"/>
+                            <Line X1="35" Y1="76" X2="110" Y2="76" Stroke="Black" StrokeThickness="1"/>
+                            <TextBlock Canvas.Left="100" Canvas.Top="33" Text="SAMPLE 1" FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Canvas.Left="100" Canvas.Top="51" Text="SAMPLE 2" FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Canvas.Left="100" Canvas.Top="69" Text="SAMPLE 3" FontSize="10" FontWeight="Bold"/>
+                            <Ellipse Canvas.Left="96" Canvas.Top="36" Width="8" Height="8" Fill="Black"/>
                         </Canvas>
                         <TextBlock Text="• : POINT TO PICK ON SCREEN" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                     </StackPanel>
@@ -122,7 +126,7 @@
             <!-- Right options -->
             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                 <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#333" FontSize="11"
-                           Text="Angle is fixed by the 4 corner presets + Angle slider. One click moves tag text (stretch leaders). Repeat clicks until ESC."/>
+                           Text="Angle is fixed by corner + Angle slider. One click = closest tag to tagged elements (taghead). Other tags stack away from hosts. Repeat until ESC."/>
                 <CheckBox x:Name="cbSwitchSide" Content="Switch Pick Point Side" Margin="0,4"/>
                 <CheckBox x:Name="cbAttachedEnd" Content="Force Attached End Tags" Margin="0,4"
                           ToolTip="ON = force Attached. OFF = keep each tag's original Attached/Free setting."/>

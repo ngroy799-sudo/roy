@@ -120,13 +120,15 @@ namespace RevitTagAlign
         private void Help_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show(
-                "TagAlign Configure\n\n" +
-                "1. Choose a corner (Upper-Left / Upper-Right / Lower-Left / Lower-Right).\n" +
-                "   That locks the leader DIRECTION (e.g. Upper-Left = extend upper-left side).\n" +
-                "2. Set Angle (°) — fixed; mouse clicks do NOT change angle.\n" +
-                "3. Proceed → Click TAG TEXT position (1 click).\n" +
-                "   Moving the click stretches/shortens leaders only.\n" +
-                "4. Click again to re-adjust; ESC to finish.\n\n" +
+                "TagAlign Configure (Bird Tools–style)\n\n" +
+                "1. Choose a corner — locks leader DIRECTION.\n" +
+                "2. Set Angle (°) — fixed; mouse does NOT change angle.\n" +
+                "3. Proceed → if needed, select Tags/Text Notes.\n" +
+                "4. Click the position of the closest tag to the tagged\n" +
+                "   elements (taghead). Other tags stack away from hosts.\n" +
+                "   Upper: stack grows up from pick. Lower: grows down.\n" +
+                "5. Click again to re-adjust; ESC to finish.\n\n" +
+                "Constant Landing: ON = fixed landing (not common angle).\n" +
                 "Force Attached End Tags: ON=force Attached, OFF=keep original.\n" +
                 "Vertical Spacing: minimum gap; tags will not overlap.\n\n" +
                 "Settings: " + ConfigStore.SettingsPath,

@@ -40,6 +40,11 @@ namespace RevitTagAlign
         /// <summary>Fixed leader angle in degrees (0–90). Combined with corner direction.</summary>
         public double AngleDegrees { get; set; } = 45.0;
 
+        /// <summary>
+        /// When true: alignment uses a constant landing length rather than a common angle
+        /// (Bird Tools Help). Angled segments aim at each host independently.
+        /// When false: all angled leaders share AngleDegrees (common angle).
+        /// </summary>
         public bool ConstantLanding { get; set; }
         /// <summary>Horizontal landing length (yellow segment) in feet.</summary>
         public double LandingDistanceFt { get; set; } = 5.0; // 1524 mm

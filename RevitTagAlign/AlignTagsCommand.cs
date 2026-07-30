@@ -1,6 +1,7 @@
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Autodesk.Revit.UI.Selection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,11 +12,11 @@ using System.Windows.Interop;
 namespace RevitTagAlign
 {
     /// <summary>
-    /// Bird Tools style:
-    /// - 4 corner presets fix the leader DIRECTION
-    /// - Angle slider fixes the leader ANGLE (does not change by mouse)
-    /// - 1 click = tag text stack position (stretch/shorten leaders only)
-    /// - Repeat clicks to re-adjust until ESC
+    /// Bird Tools style (official Help):
+    /// - Configure: corner + Angle slider (mouse never changes angle)
+    /// - Optional: select tags after Configure if none preselected
+    /// - 1 click = position of closest tag to tagged elements (taghead)
+    /// - Repeat clicks until ESC
     /// </summary>
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
@@ -45,13 +46,6 @@ namespace RevitTagAlign
                 ICollection<ElementId> selectedIds = uidoc.Selection.GetElementIds().ToList();
                 var items = CollectAnnotations(doc, selectedIds);
 
-                if (items.Count < 1)
-                {
-                    TaskDialog.Show("TagAlign",
-                        "Select one or more Tags / Text Notes first, then run TagAlign Align Selected Tags.");
-                    return Result.Cancelled;
-                }
-
                 string planeError;
                 if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
                 {
@@ -59,17 +53,41 @@ namespace RevitTagAlign
                     return Result.Cancelled;
                 }
 
+                // Configure first (Bird Tools: form shows even if nothing preselected).
                 AlignConfig cfg;
                 var optionsWindow = new AlignOptionsWindow();
                 TrySetRevitOwner(optionsWindow, uiapp);
                 if (optionsWindow.ShowDialog() != true)
                     return Result.Cancelled;
                 cfg = optionsWindow.Config;
-
-                // Angle is fixed by corner preset + Angle slider — never from mouse.
                 cfg.PickAngleThenTagPosition = false;
 
                 ActivateRevitWindow(uiapp);
+
+                // If nothing was preselected, ask user to pick tags/text notes now.
+                if (items.Count < 1)
+                {
+                    try
+                    {
+                        IList<Reference> refs = uidoc.Selection.PickObjects(
+                            ObjectType.Element,
+                            new AnnotationSelectionFilter(),
+                            "Select Tags / Text Notes to align, then click Finish");
+                        var ids = refs.Select(r => r.ElementId).ToList();
+                        items = CollectAnnotations(doc, ids);
+                    }
+                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                    {
+                        return Result.Cancelled;
+                    }
+                }
+
+                if (items.Count < 1)
+                {
+                    TaskDialog.Show("TagAlign",
+                        "No Tags / Text Notes selected.\nSelect annotations, then run TagAlign again.");
+                    return Result.Cancelled;
+                }
 
                 if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
                 {
@@ -80,8 +98,7 @@ namespace RevitTagAlign
                 bool anySuccess = false;
                 int round = 0;
 
-                // 1-click loop: each click moves tag text position (stretch leaders), angle stays fixed.
-                // ESC finishes.
+                // 1-click loop: each click places the closest-to-host taghead; angle stays fixed.
                 while (true)
                 {
                     round++;
@@ -99,7 +116,7 @@ namespace RevitTagAlign
                         tagPosition = WorkPlaneHelper.PickPoint(
                             uidoc, cfg,
                             string.Format(
-                                "Click {0}: TAG TEXT position  |  {1}  |  angle={2:0.#}° fixed  |  ESC=finish",
+                                "Click {0}: closest tag to tagged elements  |  {1}  |  angle={2:0.#}°  |  ESC=finish",
                                 round,
                                 CornerLabel(cfg.Corner),
                                 cfg.AngleDegrees));
@@ -120,7 +137,6 @@ namespace RevitTagAlign
                         using (Transaction tx = new Transaction(doc, "TagAlign Stack"))
                         {
                             tx.Start();
-                            // pickedAngle = null → use corner + AngleDegrees from Configure
                             AlignmentEngine.AlignInView(doc, view, items, tagPosition, cfg, null);
                             tx.Commit();
                         }
@@ -212,6 +228,8 @@ namespace RevitTagAlign
             ICollection<ElementId> selectedIds)
         {
             var items = new List<AlignmentEngine.AnnotationItem>();
+            if (selectedIds == null)
+                return items;
 
             foreach (ElementId id in selectedIds)
             {
@@ -239,6 +257,20 @@ namespace RevitTagAlign
             }
 
             return items;
+        }
+
+        /// <summary>Allows picking IndependentTag and TextNote elements.</summary>
+        private class AnnotationSelectionFilter : ISelectionFilter
+        {
+            public bool AllowElement(Element elem)
+            {
+                return elem is IndependentTag || elem is TextNote;
+            }
+
+            public bool AllowReference(Reference reference, XYZ position)
+            {
+                return false;
+            }
         }
     }
 }

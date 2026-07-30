@@ -36,18 +36,21 @@ Configure values are saved on **Proceed** to:
 and restored the next time you open Configure.
 
 ### Align Tags Command (Configure dialog)
-Matches Bird Tools–style configure UI:
+Matches Bird Tools official Help + Configure:
 - **4 corner presets**: Upper-Left / Upper-Right / Lower-Left / Lower-Right
-- **Pick Angle then Tag Position (2 clicks)** — default ON:
-  1. Click = **red arrow angle**
-  2. Click = **tag text position**
-- Yellow = horizontal landing; Red = parallel angled arrows
+- **Angle slider**: fixed leader angle (mouse never changes angle)
+- **1 click**: position of the **closest tag to the tagged elements** (taghead)
+  - Upper: that tag at stack bottom; others grow up
+  - Lower: that tag at stack top; others grow down
+- Repeat clicks until ESC
+- Yellow = horizontal landing; Red = parallel angled arrows (common-angle mode)
+- **Constant Landing**: ON = fixed landing rather than common angle
 - **Force Attached End Tags**: ON = force Attached; OFF = keep original Attached/Free
 - Options: Switch Pick Point Side, Keep Selection, Turn Snaps Off
-- TextNote justification, Constant Landing, Vertical / Intermittent spacing
-- Help / Proceed / Cancel
+- TextNote justification, Vertical / Intermittent spacing
+- May open Configure with empty selection, then pick tags after Proceed
 
-**Shortcut:** Select tags first, then press KS shortcut (e.g. TA). After Configure, complete the 2 clicks.
+**Shortcut:** Optional preselect → KS (e.g. TA) → Configure → click closest-tag position.
 
 ### Annotation Dashboard (Modeless)
 - **Scope**: Apply to Selected Tags, All Visible Tags, or auto-apply to New Tags

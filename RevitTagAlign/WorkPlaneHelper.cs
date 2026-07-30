@@ -7,7 +7,7 @@ namespace RevitTagAlign
 {
     /// <summary>
     /// PickPoint requires a sketch/work plane in the active view.
-    /// Ensures one exists so Align Tags 2-click picking works in plan/section/elevation/drafting.
+    /// Ensures one exists so Align Tags 1-click picking works in plan/section/elevation/drafting.
     /// </summary>
     internal static class WorkPlaneHelper
     {
