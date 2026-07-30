@@ -34,26 +34,14 @@ namespace RevitTagAlign
 
                 AlignConfig cfg = optionsWindow.Config;
 
-                // Optionally turn snaps off while picking.
-                bool? previousSnaps = null;
-                if (cfg.TurnSnapsOff)
-                {
-                    try
-                    {
-                        // TemporaryObjectStyles / SnapMode — use UIApplication snaps via keyboard is not API-friendly.
-                        // Best effort: use PickObject options; Revit SnapMode is not fully exposed.
-                        // Document for user: Turn Snaps Off uses ObjectSnapTypes.None on the pick.
-                        previousSnaps = true;
-                    }
-                    catch { }
-                }
+                ObjectSnapTypes snapTypes = cfg.TurnSnapsOff
+                    ? ObjectSnapTypes.None
+                    : ObjectSnapTypes.Endpoints | ObjectSnapTypes.Intersections | ObjectSnapTypes.Nearest;
 
                 XYZ pickPoint;
                 try
                 {
-                    pickPoint = uidoc.Selection.PickPoint(
-                        cfg.TurnSnapsOff ? ObjectSnapTypes.None : ObjectSnapTypes.Endpoints | ObjectSnapTypes.Intersections | ObjectSnapTypes.Nearest,
-                        "Pick alignment point on screen (•)");
+                    pickPoint = uidoc.Selection.PickPoint(snapTypes, "Pick alignment point on screen (•)");
                 }
                 catch (Autodesk.Revit.Exceptions.OperationCanceledException)
                 {
