@@ -13,6 +13,10 @@ namespace RevitTagAlign
 
         public Result OnStartup(UIControlledApplication application)
         {
+            // Auto-create %AppData%\Roaming\RevitTagAlign\AlignConfig.xml on Revit start.
+            try { ConfigStore.LoadOrCreate(); }
+            catch { /* non-fatal */ }
+
             application.CreateRibbonTab(TabName);
             RibbonPanel panel = application.CreateRibbonPanel(TabName, PanelName);
             string assemblyPath = Assembly.GetExecutingAssembly().Location;
@@ -26,7 +30,7 @@ namespace RevitTagAlign
             alignBtn.ToolTip = "Align Tags — stack tags/text notes with parallel leaders (pick point).";
             alignBtn.LongDescription =
                 "Keywords: Tag Align, Align Tags, Tag Alignment, Text Note Align, Leader Align, TAT.\n" +
-                "Select tags/text notes → Configure → Proceed → pick point on screen.\n" +
+                "Select tags/text notes → Configure → Proceed → pick angle then tag position.\n" +
                 "Assign a Revit shortcut: type KS → search Align Tags.";
             panel.AddItem(alignBtn);
 
@@ -40,6 +44,17 @@ namespace RevitTagAlign
                 "Keywords: Annotation Dashboard, Tag Dashboard, Leader Angle, Landing Distance, AD.\n" +
                 "Assign a Revit shortcut: type KS → search Annotation Dashboard.";
             panel.AddItem(dashboardBtn);
+
+            PushButtonData settingsBtn = new PushButtonData(
+                "OpenSettingsFolder",
+                "Settings\nFolder",
+                assemblyPath,
+                "RevitTagAlign.OpenSettingsFolderCommand");
+            settingsBtn.ToolTip = "Open the RevitTagAlign settings folder (AlignConfig.xml).";
+            settingsBtn.LongDescription =
+                "Opens:\n" + ConfigStore.SettingsDirectory + "\n\n" +
+                "File: AlignConfig.xml";
+            panel.AddItem(settingsBtn);
 
             return Result.Succeeded;
         }

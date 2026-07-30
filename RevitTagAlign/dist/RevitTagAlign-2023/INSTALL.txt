@@ -4,8 +4,13 @@ Install for Revit 2023:
 2. Restart Revit 2023
 3. Open ribbon tab: Tag Align
 
+Settings file (auto-created when Revit starts — do NOT create manually):
+  C:\Users\<you>\AppData\Roaming\RevitTagAlign\AlignConfig.xml
+
+In Revit: Tag Align tab → Settings Folder button
+Or in Configure dialog → Open Folder
+
 Keyboard shortcuts:
-1. In Revit type KS (Keyboard Shortcuts)
-2. Search: Align Tags   → Assign e.g. TA
-3. Search: Annotation Dashboard → Assign e.g. AD
-See SHORTCUTS.md for full steps.
+1. Type KS
+2. Search Align Tags → Assign e.g. TA
+
