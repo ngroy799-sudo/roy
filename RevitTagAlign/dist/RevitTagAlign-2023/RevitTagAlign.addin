@@ -17,7 +17,7 @@
   -->
   <AddIn Type="Command">
     <Text>TagAlign Align Selected Tags</Text>
-    <Description>Align selected tags/text notes with parallel leaders (2-click angle + position).</Description>
+    <Description>Align selected tags/text notes: fixed corner angle, 1-click tag position.</Description>
     <Assembly>RevitTagAlign.dll</Assembly>
     <FullClassName>RevitTagAlign.AlignTagsCommand</FullClassName>
     <ClientId>8F3A1C2B-4D5E-6789-ABCD-EF0123456791</ClientId>
