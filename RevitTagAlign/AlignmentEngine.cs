@@ -6,11 +6,11 @@ using System.Linq;
 namespace RevitTagAlign
 {
     /// <summary>
-    /// Bird Tools–style geometry:
-    /// - Tag text / head position (stack)
-    /// - Yellow = horizontal landing (head → elbow)
-    /// - Red = angled arrow (elbow → host) at a common parallel angle
-    /// - Leader end condition: preserve original unless Force Attached is on
+    /// Bird Tools–style geometry (view-aware):
+    /// - Tag texts stacked along view Up (no overlap; spacing respected)
+    /// - Yellow = horizontal landing along view Right (aligned)
+    /// - Red = parallel angled arrows toward hosts
+    /// - Leader end: preserve original unless Force Attached is on
     /// </summary>
     public static class AlignmentEngine
     {
@@ -19,7 +19,6 @@ namespace RevitTagAlign
             public Element Element { get; set; }
             public XYZ OriginalHead { get; set; }
             public XYZ HostPoint { get; set; }
-            /// <summary>Original IndependentTag leader end condition (Attached/Free). Null for text notes.</summary>
             public LeaderEndCondition? OriginalLeaderEndCondition { get; set; }
         }
 
@@ -61,12 +60,31 @@ namespace RevitTagAlign
             };
         }
 
-        /// <summary>
-        /// 2-click angle: direction from reference (host centroid) toward the picked angle point.
-        /// </summary>
         public static PickedAngle ComputeAngleFromReferenceAndPoint(XYZ reference, XYZ anglePoint)
         {
             return ComputeAngleFromTwoPoints(reference, anglePoint);
+        }
+
+        /// <summary>
+        /// Angle in the active view plane: project points onto view Right/Up, then measure.
+        /// </summary>
+        public static PickedAngle ComputeAngleInView(View view, XYZ reference, XYZ anglePoint)
+        {
+            if (view == null)
+                return ComputeAngleFromTwoPoints(reference, anglePoint);
+
+            XYZ right = view.RightDirection.Normalize();
+            XYZ up = view.UpDirection.Normalize();
+            XYZ delta = anglePoint - reference;
+            double x = delta.DotProduct(right);
+            double y = delta.DotProduct(up);
+            // Rebuild a 2D vector in world using view axes for direction storage.
+            XYZ dirWorld = (right * x + up * y);
+            if (dirWorld.GetLength() < 1e-9)
+                return ComputeAngleFromTwoPoints(reference, anglePoint);
+
+            XYZ p2 = reference + dirWorld;
+            return ComputeAngleFromTwoPoints(reference, p2);
         }
 
         public static XYZ AverageHostPoint(IList<AnnotationItem> items)
@@ -94,59 +112,112 @@ namespace RevitTagAlign
             AlignConfig cfg,
             PickedAngle pickedAngle)
         {
+            View view = doc != null ? doc.ActiveView : null;
+            AlignInView(doc, view, items, tagPosition, cfg, pickedAngle);
+        }
+
+        public static void AlignInView(
+            Document doc,
+            View view,
+            List<AnnotationItem> items,
+            XYZ tagPosition,
+            AlignConfig cfg,
+            PickedAngle pickedAngle)
+        {
             if (items == null || items.Count == 0 || tagPosition == null)
                 return;
+
+            XYZ right = view != null ? view.RightDirection.Normalize() : XYZ.BasisX;
+            XYZ up = view != null ? view.UpDirection.Normalize() : XYZ.BasisY;
 
             bool stackDown = cfg.Corner == CornerAlignment.UpperLeft
                           || cfg.Corner == CornerAlignment.UpperRight;
 
+            // Sort by projection on view-up so stack order is stable / readable.
             items = items
-                .OrderBy(i => stackDown ? -i.OriginalHead.Y : i.OriginalHead.Y)
-                .ThenBy(i => i.OriginalHead.X)
+                .OrderBy(i =>
+                {
+                    XYZ h = i.OriginalHead ?? XYZ.Zero;
+                    double u = h.DotProduct(up);
+                    return stackDown ? -u : u;
+                })
+                .ThenBy(i =>
+                {
+                    XYZ h = i.OriginalHead ?? XYZ.Zero;
+                    return h.DotProduct(right);
+                })
                 .ToList();
 
             bool tagsOnLeft;
             XYZDir arrowDir;
             ResolveSideAndArrow(cfg, pickedAngle, stackDown, out tagsOnLeft, out arrowDir);
 
+            // Map arrow into view plane components (along right / up).
+            XYZ arrowWorld = new XYZ(arrowDir.X, arrowDir.Y, 0);
+            if (view != null)
+            {
+                // Prefer direction expressed in view axes for non-plan views.
+                double ar = arrowWorld.DotProduct(right);
+                double au = arrowWorld.DotProduct(up);
+                if (Math.Abs(ar) + Math.Abs(au) > 1e-9)
+                    arrowWorld = (right * ar + up * au).Normalize();
+                else
+                    arrowWorld = (right * (tagsOnLeft ? 1.0 : -1.0) + up * (stackDown ? -1.0 : 1.0) * 0.7).Normalize();
+            }
+
+            // Landing toward host side along view right.
+            double landingSign = tagsOnLeft ? 1.0 : -1.0;
+            XYZ landingDir = right * landingSign;
+
             int perColumn = items.Count;
+            int columnCount = 1;
             if (cfg.IntermittentAlignment && cfg.HorizontalSpacingFt > 1e-9)
             {
-                int columnCount = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(items.Count)));
+                columnCount = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(items.Count)));
                 perColumn = (int)Math.Ceiling(items.Count / (double)columnCount);
             }
 
-            double landingSign = tagsOnLeft ? 1.0 : -1.0;
+            // Uniform step large enough that tag texts do not overlap.
+            double step = ComputeStackStep(items, view, cfg);
+
+            // Uniform yellow landing length (aligned elbows).
+            double landing = ResolveUniformLanding(items, tagPosition, landingDir, arrowWorld, cfg);
 
             for (int i = 0; i < items.Count; i++)
             {
                 int col = i / perColumn;
                 int row = i % perColumn;
 
-                double y = stackDown
-                    ? tagPosition.Y - row * cfg.VerticalSpacingFt
-                    : tagPosition.Y + row * cfg.VerticalSpacingFt;
-
-                double x = tagPosition.X;
+                double alongUp = stackDown ? -row * step : row * step;
+                double alongRight = 0.0;
                 if (cfg.IntermittentAlignment)
-                    x = tagPosition.X + col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
+                    alongRight = col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
 
-                XYZ head = new XYZ(x, y, tagPosition.Z);
-                ApplyItemGeometry(items[i], head, arrowDir, landingSign, cfg, tagsOnLeft);
+                XYZ head = tagPosition + up * alongUp + right * alongRight;
+                // Keep on view plane / work plane Z of pick.
+                head = new XYZ(head.X, head.Y, tagPosition.Z);
+
+                XYZ elbow = head + landingDir * landing;
+                XYZ host = items[i].HostPoint ?? head;
+                XYZ freeEnd = ProjectHostOntoArrow(elbow, host, arrowWorld);
+
+                ApplyItemGeometry(items[i], head, elbow, freeEnd, host, cfg, tagsOnLeft);
             }
         }
 
         /// <summary>
-        /// Live preview after angle click: keep current tag text positions, update leader angles now.
+        /// After angle click: update leaders only (keep current head positions).
         /// </summary>
         public static void PreviewAngleAtCurrentPositions(
             List<AnnotationItem> items,
             AlignConfig cfg,
-            PickedAngle pickedAngle)
+            PickedAngle pickedAngle,
+            View view)
         {
             if (items == null || items.Count == 0 || pickedAngle == null)
                 return;
 
+            XYZ right = view != null ? view.RightDirection.Normalize() : XYZ.BasisX;
             bool stackDown = cfg.Corner == CornerAlignment.UpperLeft
                           || cfg.Corner == CornerAlignment.UpperRight;
 
@@ -154,14 +225,113 @@ namespace RevitTagAlign
             XYZDir arrowDir;
             ResolveSideAndArrow(cfg, pickedAngle, stackDown, out tagsOnLeft, out arrowDir);
 
+            XYZ arrowWorld = new XYZ(arrowDir.X, arrowDir.Y, 0);
+            if (view != null)
+            {
+                XYZ up = view.UpDirection.Normalize();
+                double ar = arrowWorld.DotProduct(right);
+                double au = arrowWorld.DotProduct(up);
+                if (Math.Abs(ar) + Math.Abs(au) > 1e-9)
+                    arrowWorld = (right * ar + up * au).Normalize();
+            }
+
             double landingSign = tagsOnLeft ? 1.0 : -1.0;
+            XYZ landingDir = right * landingSign;
+            double landing = cfg.ConstantLanding
+                ? Math.Max(0.1, cfg.LandingDistanceFt)
+                : Math.Max(0.25, cfg.LandingDistanceFt > 0 ? cfg.LandingDistanceFt * 0.5 : 1.0);
 
             foreach (AnnotationItem item in items)
             {
                 XYZ head = GetCurrentHead(item);
                 if (head == null) continue;
-                ApplyItemGeometry(item, head, arrowDir, landingSign, cfg, tagsOnLeft);
+                XYZ elbow = head + landingDir * landing;
+                XYZ host = item.HostPoint ?? head;
+                XYZ freeEnd = ProjectHostOntoArrow(elbow, host, arrowWorld);
+                ApplyItemGeometry(item, head, elbow, freeEnd, host, cfg, tagsOnLeft);
             }
+        }
+
+        /// <summary>
+        /// Center-to-center stack step: at least user Vertical Spacing, and
+        /// at least tallest tag height + padding so texts never overlap.
+        /// </summary>
+        private static double ComputeStackStep(List<AnnotationItem> items, View view, AlignConfig cfg)
+        {
+            double user = Math.Max(0.05, cfg.VerticalSpacingFt);
+            double maxH = 0.0;
+            foreach (var item in items)
+                maxH = Math.Max(maxH, EstimateAnnotationHeight(item.Element, view));
+
+            const double padding = 0.1; // ~30mm gap between boxes
+            double minNoOverlap = maxH + padding;
+            return Math.Max(user, minNoOverlap);
+        }
+
+        private static double EstimateAnnotationHeight(Element elem, View view)
+        {
+            try
+            {
+                BoundingBoxXYZ bb = view != null ? elem.get_BoundingBox(view) : elem.get_BoundingBox(null);
+                if (bb == null)
+                    return 0.35; // ~107mm fallback
+
+                XYZ up = view != null ? view.UpDirection.Normalize() : XYZ.BasisY;
+                double minU = double.MaxValue;
+                double maxU = double.MinValue;
+                XYZ[] corners =
+                {
+                    new XYZ(bb.Min.X, bb.Min.Y, bb.Min.Z),
+                    new XYZ(bb.Min.X, bb.Min.Y, bb.Max.Z),
+                    new XYZ(bb.Min.X, bb.Max.Y, bb.Min.Z),
+                    new XYZ(bb.Min.X, bb.Max.Y, bb.Max.Z),
+                    new XYZ(bb.Max.X, bb.Min.Y, bb.Min.Z),
+                    new XYZ(bb.Max.X, bb.Min.Y, bb.Max.Z),
+                    new XYZ(bb.Max.X, bb.Max.Y, bb.Min.Z),
+                    new XYZ(bb.Max.X, bb.Max.Y, bb.Max.Z),
+                };
+                foreach (XYZ c in corners)
+                {
+                    double u = c.DotProduct(up);
+                    if (u < minU) minU = u;
+                    if (u > maxU) maxU = u;
+                }
+                double h = maxU - minU;
+                if (h < 0.1) h = 0.35;
+                return h;
+            }
+            catch
+            {
+                return 0.35;
+            }
+        }
+
+        private static double ResolveUniformLanding(
+            List<AnnotationItem> items,
+            XYZ tagPosition,
+            XYZ landingDir,
+            XYZ arrowWorld,
+            AlignConfig cfg)
+        {
+            if (cfg.ConstantLanding)
+                return Math.Max(0.1, cfg.LandingDistanceFt);
+
+            // Auto: use a stable yellow landing from average host distance.
+            double sum = 0;
+            int n = 0;
+            foreach (var item in items)
+            {
+                XYZ host = item.HostPoint ?? tagPosition;
+                XYZ delta = host - tagPosition;
+                double along = delta.DotProduct(landingDir);
+                if (along > 0.1)
+                {
+                    sum += along * 0.35;
+                    n++;
+                }
+            }
+            double auto = n > 0 ? sum / n : 1.0;
+            return Math.Max(0.25, Math.Min(auto, 10.0));
         }
 
         private static void ResolveSideAndArrow(
@@ -203,20 +373,12 @@ namespace RevitTagAlign
         private static void ApplyItemGeometry(
             AnnotationItem item,
             XYZ head,
-            XYZDir arrowDir,
-            double landingSign,
+            XYZ elbow,
+            XYZ freeEnd,
+            XYZ host,
             AlignConfig cfg,
             bool tagsOnLeft)
         {
-            XYZ host = item.HostPoint ?? head;
-
-            double landing = cfg.ConstantLanding
-                ? cfg.LandingDistanceFt
-                : ComputeLandingFromHost(head, host, arrowDir, landingSign);
-
-            XYZ elbow = new XYZ(head.X + landingSign * landing, head.Y, head.Z);
-            XYZ freeEnd = ProjectHostOntoArrow(elbow, host, arrowDir);
-
             if (item.Element is IndependentTag tag)
                 PlaceTag(tag, head, elbow, freeEnd, host, cfg, item);
             else if (item.Element is TextNote tn)
@@ -229,22 +391,9 @@ namespace RevitTagAlign
                 || cfg.Corner == CornerAlignment.LowerLeft;
         }
 
-        private static double ComputeLandingFromHost(XYZ head, XYZ host, XYZDir arrowDir, double landingSign)
+        private static XYZ ProjectHostOntoArrow(XYZ elbow, XYZ host, XYZ arrowWorld)
         {
-            if (Math.Abs(arrowDir.Y) < 1e-9)
-                return Math.Max(0.25, Math.Abs(host.X - head.X) * 0.5);
-
-            double t = (host.Y - head.Y) / arrowDir.Y;
-            if (t < 0) t = Math.Abs(t);
-            double elbowX = host.X - t * arrowDir.X;
-            double landing = (elbowX - head.X) * landingSign;
-            if (landing < 0.1) landing = Math.Max(0.25, Math.Abs(host.X - head.X) * 0.35);
-            return landing;
-        }
-
-        private static XYZ ProjectHostOntoArrow(XYZ elbow, XYZ host, XYZDir arrowDir)
-        {
-            XYZ dir = new XYZ(arrowDir.X, arrowDir.Y, 0);
+            XYZ dir = arrowWorld.Normalize();
             XYZ toHost = host - elbow;
             double t = toHost.DotProduct(dir);
             if (t < 0.1) t = Math.Max(0.5, toHost.GetLength());
@@ -270,8 +419,6 @@ namespace RevitTagAlign
                 return;
 
             Reference firstRef = refs.First();
-
-            // Preserve original Attached/Free unless user forces Attached.
             LeaderEndCondition desired = ResolveEndCondition(cfg, item.OriginalLeaderEndCondition);
 
             try
@@ -279,7 +426,7 @@ namespace RevitTagAlign
                 if (tag.LeaderEndCondition != desired)
                     tag.LeaderEndCondition = desired;
             }
-            catch { /* some tags disallow changing end condition */ }
+            catch { }
 
             if (desired == LeaderEndCondition.Free)
             {
@@ -290,7 +437,6 @@ namespace RevitTagAlign
                     catch { }
                 }
             }
-            // Attached: do not SetLeaderEnd — keep host attachment.
 
             try { tag.SetLeaderElbow(firstRef, elbow); }
             catch { }
@@ -302,11 +448,8 @@ namespace RevitTagAlign
         {
             if (cfg.AttachedEndTags)
                 return LeaderEndCondition.Attached;
-
-            // Keep original setting (Attached or Free). Default to Attached if unknown.
             if (original.HasValue)
                 return original.Value;
-
             return LeaderEndCondition.Attached;
         }
 
@@ -331,12 +474,8 @@ namespace RevitTagAlign
                 foreach (Leader leader in leaders)
                 {
                     leader.Elbow = elbow;
-                    // Text notes: only move end when forcing free-style placement and not preserving attach.
-                    // Keep original end when AttachedEndTags is false (preserve).
                     if (cfg.AttachedEndTags)
                         continue;
-                    // Preserve text note leader end unless it was free-style — leave End as originalHost.
-                    // Do not overwrite with freeEnd projection when preserving.
                 }
             }
             catch { }

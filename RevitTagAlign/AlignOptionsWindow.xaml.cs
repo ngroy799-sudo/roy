@@ -121,13 +121,16 @@ namespace RevitTagAlign
         private void Help_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show(
-                "Tag Align Configure\n\n" +
-                "2-click mouse picks (default ON):\n" +
-                "  Click 1/2  LEADER ANGLE — red arrow direction\n" +
-                "  Click 2/2  TAG POSITION — first tag text location\n\n" +
+                "TagAlign Configure\n\n" +
+                "After Proceed:\n" +
+                "  Click 1/2 = leader angle (live preview)\n" +
+                "  Click 2/2 = tag stack position (no overlap)\n" +
+                "  Then loops again 1→2 until you press ESC\n\n" +
                 "Force Attached End Tags:\n" +
-                "  ON  = force Attached ends\n" +
-                "  OFF = keep each tag's original Attached/Free (recommended)\n\n" +
+                "  ON  = force Attached\n" +
+                "  OFF = keep original Attached/Free\n\n" +
+                "Vertical Spacing = minimum gap; tags never overlap\n" +
+                "even if spacing is smaller than text height.\n\n" +
                 "Settings: " + ConfigStore.SettingsPath,
                 "Help",
                 MessageBoxButton.OK,

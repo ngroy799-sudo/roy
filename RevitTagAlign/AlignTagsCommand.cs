@@ -31,6 +31,7 @@ namespace RevitTagAlign
             }
 
             Document doc = uidoc.Document;
+            View view = doc.ActiveView;
 
             try
             {
@@ -44,7 +45,6 @@ namespace RevitTagAlign
                     return Result.Cancelled;
                 }
 
-                // Work plane must exist BEFORE PickPoint (not caused by rename/KS changes).
                 string planeError;
                 if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
                 {
@@ -52,6 +52,7 @@ namespace RevitTagAlign
                     return Result.Cancelled;
                 }
 
+                // Configure once; then loop 1-click → 2-click until ESC.
                 AlignConfig cfg;
                 var optionsWindow = new AlignOptionsWindow();
                 TrySetRevitOwner(optionsWindow, uiapp);
@@ -61,87 +62,112 @@ namespace RevitTagAlign
 
                 ActivateRevitWindow(uiapp);
 
-                // Re-ensure after dialog (some views clear context).
                 if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
                 {
                     TaskDialog.Show("TagAlign", planeError);
                     return Result.Cancelled;
                 }
 
-                using (TransactionGroup tg = new TransactionGroup(doc, "TagAlign Align"))
+                bool anySuccess = false;
+                int round = 0;
+
+                // Repeat adjust loop: ESC cancels current pick and exits tool.
+                while (true)
                 {
-                    tg.Start();
+                    round++;
+                    Reselect(uidoc, items);
 
-                    PickedAngle pickedAngle = null;
-                    XYZ tagPosition;
-
-                    try
+                    if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
                     {
-                        if (cfg.PickAngleThenTagPosition)
+                        TaskDialog.Show("TagAlign", planeError);
+                        break;
+                    }
+
+                    using (TransactionGroup tg = new TransactionGroup(doc, "TagAlign Adjust " + round))
+                    {
+                        tg.Start();
+
+                        PickedAngle pickedAngle = null;
+                        XYZ tagPosition;
+
+                        try
                         {
-                            XYZ hostCentroid = AlignmentEngine.AverageHostPoint(items);
-                            XYZ anglePoint = WorkPlaneHelper.PickPoint(
-                                uidoc, cfg,
-                                "Click 1/2: LEADER ANGLE (red arrow) — tags update after click");
-
-                            pickedAngle = AlignmentEngine.ComputeAngleFromReferenceAndPoint(
-                                hostCentroid, anglePoint);
-
-                            using (Transaction txPreview = new Transaction(doc, "TagAlign Preview Angle"))
+                            if (cfg.PickAngleThenTagPosition)
                             {
-                                txPreview.Start();
-                                AlignmentEngine.PreviewAngleAtCurrentPositions(items, cfg, pickedAngle);
-                                txPreview.Commit();
+                                XYZ hostCentroid = AlignmentEngine.AverageHostPoint(items);
+                                XYZ anglePoint = WorkPlaneHelper.PickPoint(
+                                    uidoc, cfg,
+                                    string.Format(
+                                        "Round {0} — Click 1/2: LEADER ANGLE  (ESC = finish)",
+                                        round));
+
+                                pickedAngle = AlignmentEngine.ComputeAngleInView(
+                                    view, hostCentroid, anglePoint);
+
+                                using (Transaction txPreview = new Transaction(doc, "TagAlign Preview Angle"))
+                                {
+                                    txPreview.Start();
+                                    AlignmentEngine.PreviewAngleAtCurrentPositions(
+                                        items, cfg, pickedAngle, view);
+                                    txPreview.Commit();
+                                }
+
+                                Reselect(uidoc, items);
+                                try { uidoc.RefreshActiveView(); } catch { }
+
+                                tagPosition = WorkPlaneHelper.PickPoint(
+                                    uidoc, cfg,
+                                    string.Format(
+                                        "Round {0} — Click 2/2: TAG POSITION  [angle={1:0.#}°]  (ESC = finish)",
+                                        round, pickedAngle.AngleDegreesAbs));
                             }
-
-                            Reselect(uidoc, items);
-                            try { uidoc.RefreshActiveView(); } catch { }
-
-                            tagPosition = WorkPlaneHelper.PickPoint(
-                                uidoc, cfg,
-                                string.Format(
-                                    "Click 2/2: TAG POSITION — stack moves here  [angle={0:0.#} deg]",
-                                    pickedAngle.AngleDegreesAbs));
+                            else
+                            {
+                                tagPosition = WorkPlaneHelper.PickPoint(
+                                    uidoc, cfg,
+                                    string.Format(
+                                        "Round {0} — Click: TAG POSITION  (ESC = finish)",
+                                        round));
+                            }
                         }
-                        else
+                        catch (Autodesk.Revit.Exceptions.OperationCanceledException)
                         {
-                            tagPosition = WorkPlaneHelper.PickPoint(
-                                uidoc, cfg,
-                                "Click: TAG POSITION (first tag text location)");
+                            // ESC: end loop; keep previous successful rounds.
+                            tg.RollBack();
+                            break;
                         }
-                    }
-                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
-                    {
-                        tg.RollBack();
-                        Reselect(uidoc, items);
-                        return Result.Cancelled;
-                    }
-                    catch (InvalidOperationException ioe)
-                    {
-                        tg.RollBack();
-                        Reselect(uidoc, items);
-                        TaskDialog.Show("TagAlign", ioe.Message);
-                        return Result.Cancelled;
+                        catch (InvalidOperationException ioe)
+                        {
+                            tg.RollBack();
+                            TaskDialog.Show("TagAlign", ioe.Message);
+                            break;
+                        }
+
+                        using (Transaction txFinal = new Transaction(doc, "TagAlign Stack Position"))
+                        {
+                            txFinal.Start();
+                            AlignmentEngine.AlignInView(
+                                doc, view, items, tagPosition, cfg, pickedAngle);
+                            txFinal.Commit();
+                        }
+
+                        tg.Assimilate();
                     }
 
-                    using (Transaction txFinal = new Transaction(doc, "TagAlign Align Position"))
-                    {
-                        txFinal.Start();
-                        AlignmentEngine.Align(doc, items, tagPosition, cfg, pickedAngle);
-                        txFinal.Commit();
-                    }
+                    anySuccess = true;
+                    try { uidoc.RefreshActiveView(); } catch { }
+                    Reselect(uidoc, items);
 
-                    tg.Assimilate();
+                    // Continue loop for another 1→2 click adjust (no need to reopen tool).
+                    // When PickAngleThenTagPosition is OFF, still loop position-only picks.
                 }
 
-                try { uidoc.RefreshActiveView(); } catch { }
-
-                if (!cfg.KeepSelectionAfterUse)
+                if (!cfg.KeepSelectionAfterUse && anySuccess)
                     uidoc.Selection.SetElementIds(new List<ElementId>());
                 else
                     Reselect(uidoc, items);
 
-                return Result.Succeeded;
+                return anySuccess ? Result.Succeeded : Result.Cancelled;
             }
             catch (Autodesk.Revit.Exceptions.OperationCanceledException)
             {
