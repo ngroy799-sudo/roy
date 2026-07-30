@@ -1,6 +1,32 @@
 # RevitTagAlign - Tag Alignment Tool for Revit 2023
 
-A Revit 2023 add-in that aligns Tags and Text Notes with leaders, making landing lines straight and leaders parallel. Includes an Annotation Dashboard for dynamic control of leader geometry.
+A Revit 2023 add-in that aligns Tags and Text Notes with leaders, making landing lines straight and leaders are parallel. Includes an Annotation Dashboard for dynamic control of leader geometry.
+
+## Get the DLL
+
+Prebuilt files are already in the repo:
+
+```
+RevitTagAlign/dist/RevitTagAlign-2023/
+├── RevitTagAlign.dll
+├── RevitTagAlign.addin
+└── INSTALL.txt
+```
+
+### Install into Revit 2023
+
+Copy **both** `RevitTagAlign.dll` and `RevitTagAlign.addin` into:
+
+```
+%AppData%\Autodesk\Revit\Addins\2023\
+```
+
+Restart Revit 2023 → ribbon tab **Tag Align**.
+
+### Rebuild (optional)
+
+- Windows: run `Build.bat` → output in `bin\Release\`
+- CI: Actions → **Build RevitTagAlign DLL** → artifact `RevitTagAlign-2023`
 
 ## Features
 
@@ -16,36 +42,18 @@ A Revit 2023 add-in that aligns Tags and Text Notes with leaders, making landing
 - **Leader Length**: Control overall leader length
 - **Quick Presets**: 45° Standard, 60° Steep, 30° Shallow, Horizontal
 
-## Installation
-
-1. Build the project targeting .NET Framework 4.8
-2. Copy `RevitTagAlign.dll` to a Revit add-ins folder:
-   - `%AppData%\Autodesk\Revit\Addins\2023\`
-3. Copy `RevitTagAlign.addin` to the same folder
-4. Restart Revit 2023
-
-## Build Requirements
-
-- Visual Studio 2022
-- .NET Framework 4.8 SDK
-- Revit 2023 SDK (or NuGet package `Autodesk.Revit.SDK` 2023.0.0)
-
-## Usage
-
-1. Open Revit 2023 and navigate to the **Tag Align** ribbon tab
-2. **Align Tags**: Select tags/text notes → click "Align Tags" → choose alignment mode and angle → OK
-3. **Annotation Dashboard**: Click to open the modeless dashboard, adjust sliders, and click "Apply Now"
-
 ## Project Structure
 
 ```
 RevitTagAlign/
-├── RevitTagAlign.csproj          # Project file (net48, Revit 2023 SDK)
-├── RevitTagAlign.addin           # Revit manifest file
-├── App.cs                        # IExternalApplication - ribbon setup
-├── AlignTagsCommand.cs           # Main alignment command
-├── AlignOptionsWindow.xaml/.cs   # Alignment options dialog
-├── AnnotationDashboardCommand.cs # Opens the dashboard
-├── AnnotationDashboardWindow.xaml/.cs # Modeless dashboard UI
-└── README.md
+├── Build.bat                         # One-click Windows build → DLL
+├── RevitTagAlign.csproj
+├── RevitTagAlign.addin
+├── App.cs
+├── AlignTagsCommand.cs
+├── AlignOptionsWindow.xaml/.cs
+├── AnnotationDashboardCommand.cs
+├── AnnotationDashboardWindow.xaml/.cs
+├── bin/Release/                      # After build: DLL lives here
+└── dist/                             # Packaged install folder (CI)
 ```
