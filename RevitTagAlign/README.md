@@ -30,10 +30,14 @@ Restart Revit 2023 → ribbon tab **Tag Align**.
 
 ## Features
 
-### Align Tags Command
-- Select 2+ tags/text notes and align them (Left, Right, Top, Bottom, Middle)
-- Adjusts leaders to a specified angle so all are parallel
-- Supports both IndependentTag and TextNote elements
+### Align Tags Command (Configure dialog)
+Matches Bird Tools–style configure UI:
+- **4 corner presets**: Upper-Left / Upper-Right / Lower-Left / Lower-Right + pick point on screen
+- **Options**: Switch Pick Point Side, Attached End Tags, Keep Selection After Use, Turn Snaps Off
+- **TextNote justification**: Unchanged / Left / Right / Automatic
+- **Angle** 0°–90°, **Constant Landing** + Landing Distance (mm)
+- **Vertical Spacing** (mm), **Intermittent Alignment** + Horizontal Spacing (mm)
+- **Help / Proceed / Cancel** — Proceed then pick • on screen
 
 ### Annotation Dashboard (Modeless)
 - **Scope**: Apply to Selected Tags, All Visible Tags, or auto-apply to New Tags
