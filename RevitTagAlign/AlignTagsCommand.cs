@@ -10,6 +10,13 @@ using System.Windows.Interop;
 
 namespace RevitTagAlign
 {
+    /// <summary>
+    /// Bird Tools style:
+    /// - 4 corner presets fix the leader DIRECTION
+    /// - Angle slider fixes the leader ANGLE (does not change by mouse)
+    /// - 1 click = tag text stack position (stretch/shorten leaders only)
+    /// - Repeat clicks to re-adjust until ESC
+    /// </summary>
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
     public class AlignTagsCommand : IExternalCommand
@@ -52,13 +59,15 @@ namespace RevitTagAlign
                     return Result.Cancelled;
                 }
 
-                // Configure once; then loop 1-click → 2-click until ESC.
                 AlignConfig cfg;
                 var optionsWindow = new AlignOptionsWindow();
                 TrySetRevitOwner(optionsWindow, uiapp);
                 if (optionsWindow.ShowDialog() != true)
                     return Result.Cancelled;
                 cfg = optionsWindow.Config;
+
+                // Angle is fixed by corner preset + Angle slider — never from mouse.
+                cfg.PickAngleThenTagPosition = false;
 
                 ActivateRevitWindow(uiapp);
 
@@ -71,7 +80,8 @@ namespace RevitTagAlign
                 bool anySuccess = false;
                 int round = 0;
 
-                // Repeat adjust loop: ESC cancels current pick and exits tool.
+                // 1-click loop: each click moves tag text position (stretch leaders), angle stays fixed.
+                // ESC finishes.
                 while (true)
                 {
                     round++;
@@ -83,83 +93,43 @@ namespace RevitTagAlign
                         break;
                     }
 
-                    using (TransactionGroup tg = new TransactionGroup(doc, "TagAlign Adjust " + round))
+                    XYZ tagPosition;
+                    try
+                    {
+                        tagPosition = WorkPlaneHelper.PickPoint(
+                            uidoc, cfg,
+                            string.Format(
+                                "Click {0}: TAG TEXT position  |  {1}  |  angle={2:0.#}° fixed  |  ESC=finish",
+                                round,
+                                CornerLabel(cfg.Corner),
+                                cfg.AngleDegrees));
+                    }
+                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (InvalidOperationException ioe)
+                    {
+                        TaskDialog.Show("TagAlign", ioe.Message);
+                        break;
+                    }
+
+                    using (TransactionGroup tg = new TransactionGroup(doc, "TagAlign Place " + round))
                     {
                         tg.Start();
-
-                        PickedAngle pickedAngle = null;
-                        XYZ tagPosition;
-
-                        try
+                        using (Transaction tx = new Transaction(doc, "TagAlign Stack"))
                         {
-                            if (cfg.PickAngleThenTagPosition)
-                            {
-                                XYZ hostCentroid = AlignmentEngine.AverageHostPoint(items);
-                                XYZ anglePoint = WorkPlaneHelper.PickPoint(
-                                    uidoc, cfg,
-                                    string.Format(
-                                        "Round {0} — Click 1/2: LEADER ANGLE  (ESC = finish)",
-                                        round));
-
-                                pickedAngle = AlignmentEngine.ComputeAngleInView(
-                                    view, hostCentroid, anglePoint);
-
-                                using (Transaction txPreview = new Transaction(doc, "TagAlign Preview Angle"))
-                                {
-                                    txPreview.Start();
-                                    AlignmentEngine.PreviewAngleAtCurrentPositions(
-                                        items, cfg, pickedAngle, view);
-                                    txPreview.Commit();
-                                }
-
-                                Reselect(uidoc, items);
-                                try { uidoc.RefreshActiveView(); } catch { }
-
-                                tagPosition = WorkPlaneHelper.PickPoint(
-                                    uidoc, cfg,
-                                    string.Format(
-                                        "Round {0} — Click 2/2: TAG POSITION  [angle={1:0.#}°]  (ESC = finish)",
-                                        round, pickedAngle.AngleDegreesAbs));
-                            }
-                            else
-                            {
-                                tagPosition = WorkPlaneHelper.PickPoint(
-                                    uidoc, cfg,
-                                    string.Format(
-                                        "Round {0} — Click: TAG POSITION  (ESC = finish)",
-                                        round));
-                            }
+                            tx.Start();
+                            // pickedAngle = null → use corner + AngleDegrees from Configure
+                            AlignmentEngine.AlignInView(doc, view, items, tagPosition, cfg, null);
+                            tx.Commit();
                         }
-                        catch (Autodesk.Revit.Exceptions.OperationCanceledException)
-                        {
-                            // ESC: end loop; keep previous successful rounds.
-                            tg.RollBack();
-                            break;
-                        }
-                        catch (InvalidOperationException ioe)
-                        {
-                            tg.RollBack();
-                            TaskDialog.Show("TagAlign", ioe.Message);
-                            break;
-                        }
-
-                        using (Transaction txFinal = new Transaction(doc, "TagAlign Stack Position"))
-                        {
-                            txFinal.Start();
-                            AlignmentEngine.AlignInView(
-                                doc, view, items, tagPosition, cfg, pickedAngle);
-                            txFinal.Commit();
-                        }
-
                         tg.Assimilate();
                     }
 
                     anySuccess = true;
                     try { uidoc.RefreshActiveView(); } catch { }
                     Reselect(uidoc, items);
-
-                    // Continue loop for another 1→2 click adjust (no need to reopen tool).
-                    // When PickAngleThenTagPosition is OFF, still loop position-only picks.
                 }
 
                 if (!cfg.KeepSelectionAfterUse && anySuccess)
@@ -178,6 +148,18 @@ namespace RevitTagAlign
                 message = ex.Message;
                 TaskDialog.Show("TagAlign Error", ex.Message);
                 return Result.Failed;
+            }
+        }
+
+        private static string CornerLabel(CornerAlignment c)
+        {
+            switch (c)
+            {
+                case CornerAlignment.UpperLeft: return "Upper-Left";
+                case CornerAlignment.UpperRight: return "Upper-Right";
+                case CornerAlignment.LowerLeft: return "Lower-Left";
+                case CornerAlignment.LowerRight: return "Lower-Right";
+                default: return c.ToString();
             }
         }
 
@@ -217,10 +199,7 @@ namespace RevitTagAlign
 
         private static IntPtr GetRevitMainWindowHandle(UIApplication uiapp)
         {
-            try
-            {
-                return uiapp.MainWindowHandle;
-            }
+            try { return uiapp.MainWindowHandle; }
             catch
             {
                 try { return System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle; }

@@ -121,8 +121,8 @@
 
             <!-- Right options -->
             <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                <CheckBox x:Name="cbPickAngleMouse" Content="Pick Angle then Tag Position (2 clicks)" IsChecked="True" Margin="0,4"
-                          ToolTip="Click1 = red arrow angle, Click2 = tag text position"/>
+                <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#333" FontSize="11"
+                           Text="Angle is fixed by the 4 corner presets + Angle slider. One click moves tag text (stretch leaders). Repeat clicks until ESC."/>
                 <CheckBox x:Name="cbSwitchSide" Content="Switch Pick Point Side" Margin="0,4"/>
                 <CheckBox x:Name="cbAttachedEnd" Content="Force Attached End Tags" Margin="0,4"
                           ToolTip="ON = force Attached. OFF = keep each tag's original Attached/Free setting."/>
@@ -153,8 +153,8 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Angle fallback (°)" VerticalAlignment="Center" Margin="0,0,8,8"
-                       ToolTip="Used only when 'Pick Angle then Tag Position' is OFF. When ON, angle comes from mouse (red arrow)."/>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Angle (°)" VerticalAlignment="Center" Margin="0,0,8,8"
+                       ToolTip="Fixed leader angle. Direction comes from the selected corner preset (e.g. Upper-Left)."/>
             <Slider x:Name="sliderAngle" Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="90" Value="45"
                     TickFrequency="5" IsSnapToTickEnabled="False" VerticalAlignment="Center" Margin="0,0,8,8"
                     ValueChanged="SliderAngle_Changed"/>
