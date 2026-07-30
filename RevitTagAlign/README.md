@@ -30,7 +30,10 @@ Restart Revit 2023 → ribbon tab **Tag Align**.
 
 ## Features
 
-### Align Tags Command (Configure dialog)
+### Settings persistence
+Configure values are saved on **Proceed** to:
+`%AppData%\RevitTagAlign\AlignConfig.xml`
+and restored the next time you open Configure.
 Matches Bird Tools–style configure UI:
 - **4 corner presets**: Upper-Left / Upper-Right / Lower-Left / Lower-Right
 - **Pick Angle then Tag Position (Mouse)** — default ON:

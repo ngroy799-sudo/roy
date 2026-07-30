@@ -9,17 +9,76 @@ namespace RevitTagAlign
         public AlignConfig Config { get; private set; }
 
         private const double MmPerFoot = 304.8;
+        private bool _loadingUi;
 
         public AlignOptionsWindow()
         {
             InitializeComponent();
-            Config = new AlignConfig();
+            Config = ConfigStore.Load();
+            ApplyConfigToUi(Config);
+        }
+
+        private void ApplyConfigToUi(AlignConfig cfg)
+        {
+            if (cfg == null) cfg = new AlignConfig();
+            _loadingUi = true;
+            try
+            {
+                switch (cfg.Corner)
+                {
+                    case CornerAlignment.UpperRight: rbUR.IsChecked = true; break;
+                    case CornerAlignment.LowerLeft: rbLL.IsChecked = true; break;
+                    case CornerAlignment.LowerRight: rbLR.IsChecked = true; break;
+                    default: rbUL.IsChecked = true; break;
+                }
+
+                cbPickAngleMouse.IsChecked = cfg.PickAngleThenTagPosition;
+                cbSwitchSide.IsChecked = cfg.SwitchPickPointSide;
+                cbAttachedEnd.IsChecked = cfg.AttachedEndTags;
+                cbKeepSelection.IsChecked = cfg.KeepSelectionAfterUse;
+                cbTurnSnapsOff.IsChecked = cfg.TurnSnapsOff;
+
+                switch (cfg.Justification)
+                {
+                    case TextNoteJustificationMode.Unchanged: rbJustUnchanged.IsChecked = true; break;
+                    case TextNoteJustificationMode.Left: rbJustLeft.IsChecked = true; break;
+                    case TextNoteJustificationMode.Right: rbJustRight.IsChecked = true; break;
+                    default: rbJustAuto.IsChecked = true; break;
+                }
+
+                double angle = Math.Max(0, Math.Min(90, cfg.AngleDegrees));
+                sliderAngle.Value = angle;
+                tbAngle.Text = angle.ToString("0.###", CultureInfo.InvariantCulture);
+
+                cbConstantLanding.IsChecked = cfg.ConstantLanding;
+                tbLanding.IsEnabled = cfg.ConstantLanding;
+                tbLanding.Text = FeetToMmText(cfg.LandingDistanceFt, 1524);
+
+                tbVertSpacing.Text = FeetToMmText(cfg.VerticalSpacingFt, 60.96);
+
+                cbIntermittent.IsChecked = cfg.IntermittentAlignment;
+                tbHorizSpacing.IsEnabled = cfg.IntermittentAlignment;
+                tbHorizSpacing.Text = FeetToMmText(cfg.HorizontalSpacingFt, 3048);
+            }
+            finally
+            {
+                _loadingUi = false;
+            }
+        }
+
+        private static string FeetToMmText(double feet, double defaultMm)
+        {
+            double mm = feet * MmPerFoot;
+            if (double.IsNaN(mm) || double.IsInfinity(mm) || mm <= 0)
+                mm = defaultMm;
+            return mm.ToString("0.##", CultureInfo.InvariantCulture);
         }
 
         private void SliderAngle_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (tbAngle != null)
-                tbAngle.Text = ((int)Math.Round(sliderAngle.Value)).ToString(CultureInfo.InvariantCulture);
+            if (_loadingUi || tbAngle == null)
+                return;
+            tbAngle.Text = ((int)Math.Round(sliderAngle.Value)).ToString(CultureInfo.InvariantCulture);
         }
 
         private void TbAngle_LostFocus(object sender, RoutedEventArgs e)
@@ -59,8 +118,8 @@ namespace RevitTagAlign
                 "  • Tag text = stacked at the tag position\n" +
                 "  • Yellow = horizontal landing (head → elbow)\n" +
                 "  • Red = angled arrow (elbow → element), all parallel\n\n" +
-                "Constant Landing: fixed yellow segment length (mm).\n" +
-                "Angle slider: fallback only when mouse angle pick is OFF.",
+                "Settings are saved when you click Proceed\n" +
+                "(file: %AppData%\\RevitTagAlign\\AlignConfig.xml).",
                 "Help",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -69,6 +128,7 @@ namespace RevitTagAlign
         private void Proceed_Click(object sender, RoutedEventArgs e)
         {
             Config = BuildConfig();
+            ConfigStore.Save(Config);
             DialogResult = true;
             Close();
         }
