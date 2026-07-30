@@ -32,12 +32,12 @@ namespace RevitTagAlign
         public TextNoteJustificationMode Justification { get; set; } = TextNoteJustificationMode.Automatic;
 
         /// <summary>
-        /// Bird Tools style: after Proceed, pick angle with mouse (2 pts), then pick tag text position.
-        /// When true, slider angle is only a fallback if mouse pick is cancelled mid-flow is N/A — angle comes from mouse.
+        /// Deprecated: angle is fixed by corner preset + AngleDegrees.
+        /// Kept for XML compatibility; always treated as false (1-click).
         /// </summary>
-        public bool PickAngleThenTagPosition { get; set; } = true;
+        public bool PickAngleThenTagPosition { get; set; } = false;
 
-        /// <summary>Fallback / slider angle in degrees (0–90). Overridden when mouse-picked.</summary>
+        /// <summary>Fixed leader angle in degrees (0–90). Combined with corner direction.</summary>
         public double AngleDegrees { get; set; } = 45.0;
 
         public bool ConstantLanding { get; set; }

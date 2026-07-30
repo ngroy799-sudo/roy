@@ -43,7 +43,6 @@ namespace RevitTagAlign
                     default: rbUL.IsChecked = true; break;
                 }
 
-                cbPickAngleMouse.IsChecked = cfg.PickAngleThenTagPosition;
                 cbSwitchSide.IsChecked = cfg.SwitchPickPointSide;
                 cbAttachedEnd.IsChecked = cfg.AttachedEndTags;
                 cbKeepSelection.IsChecked = cfg.KeepSelectionAfterUse;
@@ -122,15 +121,14 @@ namespace RevitTagAlign
         {
             MessageBox.Show(
                 "TagAlign Configure\n\n" +
-                "After Proceed:\n" +
-                "  Click 1/2 = leader angle (live preview)\n" +
-                "  Click 2/2 = tag stack position (no overlap)\n" +
-                "  Then loops again 1→2 until you press ESC\n\n" +
-                "Force Attached End Tags:\n" +
-                "  ON  = force Attached\n" +
-                "  OFF = keep original Attached/Free\n\n" +
-                "Vertical Spacing = minimum gap; tags never overlap\n" +
-                "even if spacing is smaller than text height.\n\n" +
+                "1. Choose a corner (Upper-Left / Upper-Right / Lower-Left / Lower-Right).\n" +
+                "   That locks the leader DIRECTION (e.g. Upper-Left = extend upper-left side).\n" +
+                "2. Set Angle (°) — fixed; mouse clicks do NOT change angle.\n" +
+                "3. Proceed → Click TAG TEXT position (1 click).\n" +
+                "   Moving the click stretches/shortens leaders only.\n" +
+                "4. Click again to re-adjust; ESC to finish.\n\n" +
+                "Force Attached End Tags: ON=force Attached, OFF=keep original.\n" +
+                "Vertical Spacing: minimum gap; tags will not overlap.\n\n" +
                 "Settings: " + ConfigStore.SettingsPath,
                 "Help",
                 MessageBoxButton.OK,
@@ -200,7 +198,7 @@ namespace RevitTagAlign
             else if (rbLL.IsChecked == true) cfg.Corner = CornerAlignment.LowerLeft;
             else cfg.Corner = CornerAlignment.LowerRight;
 
-            cfg.PickAngleThenTagPosition = cbPickAngleMouse.IsChecked == true;
+            cfg.PickAngleThenTagPosition = false; // angle is never mouse-picked
             cfg.SwitchPickPointSide = cbSwitchSide.IsChecked == true;
             cfg.AttachedEndTags = cbAttachedEnd.IsChecked == true;
             cfg.KeepSelectionAfterUse = cbKeepSelection.IsChecked == true;
