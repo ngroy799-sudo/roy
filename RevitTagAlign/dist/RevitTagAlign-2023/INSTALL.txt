@@ -1,16 +1,26 @@
-Install for Revit 2023:
-1. Copy RevitTagAlign.dll and RevitTagAlign.addin to:
+Install RevitTagAlign for Revit 2023
+====================================
+
+QUICK (recommended)
+1. Extract this zip to a folder
+2. Right-click Install.bat -> Run as administrator (or normal)
+3. Close and reopen Revit 2023
+4. Ribbon tab: Tag Align
+
+Install.bat copies files to:
+  %AppData%\Autodesk\Revit\Addins\2023\
+and Unblocks them (fixes error 0x80131515 / FileLoadException).
+
+MANUAL
+1. Copy RevitTagAlign.dll + RevitTagAlign.addin to:
    %AppData%\Autodesk\Revit\Addins\2023\
-2. Restart Revit 2023
-3. Open ribbon tab: Tag Align
+2. IMPORTANT - unblock the DLL:
+   Right-click RevitTagAlign.dll -> Properties -> check "Unblock" -> Apply -> OK
+   (or PowerShell: Unblock-File "...\RevitTagAlign.dll")
+3. Restart Revit
 
-Settings file (auto-created when Revit starts — do NOT create manually):
-  C:\Users\<you>\AppData\Roaming\RevitTagAlign\AlignConfig.xml
+Error 0x80131515 means Windows blocked a file downloaded from the internet.
+It is NOT a Revit version mismatch. Unblock fixes it.
 
-In Revit: Tag Align tab → Settings Folder button
-Or in Configure dialog → Open Folder
-
-Keyboard shortcuts:
-1. Type KS
-2. Search Align Tags → Assign e.g. TA
-
+Settings (auto-created, do not create manually):
+  %AppData%\Roaming\RevitTagAlign\AlignConfig.xml
