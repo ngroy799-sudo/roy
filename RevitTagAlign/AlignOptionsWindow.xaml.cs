@@ -14,8 +14,19 @@ namespace RevitTagAlign
         public AlignOptionsWindow()
         {
             InitializeComponent();
-            Config = ConfigStore.Load();
+            // Create folder + XML on first open so the path is always findable.
+            Config = ConfigStore.LoadOrCreate();
             ApplyConfigToUi(Config);
+            RefreshPathLabel();
+        }
+
+        private void RefreshPathLabel()
+        {
+            if (txtSettingsPath == null)
+                return;
+
+            string exists = System.IO.File.Exists(ConfigStore.SettingsPath) ? "OK" : "missing";
+            txtSettingsPath.Text = "Settings: " + ConfigStore.SettingsPath + "  [" + exists + "]";
         }
 
         private void ApplyConfigToUi(AlignConfig cfg)
@@ -111,18 +122,55 @@ namespace RevitTagAlign
         {
             MessageBox.Show(
                 "Tag Align Configure\n\n" +
-                "Bird Tools–style mouse picks (default ON):\n" +
-                "  1/2  Pick LEADER ANGLE — two clicks along the red arrow\n" +
-                "  2/2  Pick TAG POSITION — where the first tag text goes\n\n" +
-                "Geometry:\n" +
-                "  • Tag text = stacked at the tag position\n" +
-                "  • Yellow = horizontal landing (head → elbow)\n" +
-                "  • Red = angled arrow (elbow → element), all parallel\n\n" +
-                "Settings are saved when you click Proceed\n" +
-                "(file: %AppData%\\RevitTagAlign\\AlignConfig.xml).",
+                "Settings file (Roaming AppData):\n" +
+                ConfigStore.SettingsPath + "\n\n" +
+                "Tip: %AppData% = C:\\Users\\<you>\\AppData\\Roaming\n" +
+                "Not Local AppData.\n\n" +
+                "Use Save Settings or Proceed to write the file.\n" +
+                "Use Open Folder to jump there in Explorer.",
                 "Help",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
+        }
+
+        private void SaveSettings_Click(object sender, RoutedEventArgs e)
+        {
+            Config = BuildConfig();
+            bool ok = ConfigStore.Save(Config);
+            RefreshPathLabel();
+            if (ok)
+            {
+                MessageBox.Show(
+                    "Saved:\n" + ConfigStore.SettingsPath,
+                    "Settings Saved",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Could not save settings.\n" +
+                    ConfigStore.SettingsPath + "\n\n" +
+                    (ConfigStore.LastError ?? "Unknown error"),
+                    "Save Failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        private void OpenFolder_Click(object sender, RoutedEventArgs e)
+        {
+            ConfigStore.OpenSettingsFolder();
+            RefreshPathLabel();
+            if (!string.IsNullOrEmpty(ConfigStore.LastError))
+            {
+                MessageBox.Show(
+                    "Could not open folder:\n" + ConfigStore.LastError +
+                    "\n\nPath:\n" + ConfigStore.SettingsDirectory,
+                    "Open Folder",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
         private void Proceed_Click(object sender, RoutedEventArgs e)
