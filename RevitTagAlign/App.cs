@@ -6,54 +6,70 @@ namespace RevitTagAlign
     public class App : IExternalApplication
     {
         // Stable internal ids — used by Revit Keyboard Shortcuts CommandId.
-        public const string AlignTagsButtonId = "AlignTags";
-        public const string DashboardButtonId = "AnnotationDashboard";
-        public const string TabName = "Tag Align";
-        public const string PanelName = "Alignment";
+        // Unique prefix "TagAlign_" avoids collisions with other add-ins.
+        public const string AlignTagsButtonId = "TagAlign_AlignSelectedTags";
+        public const string DashboardButtonId = "TagAlign_LeaderDashboard";
+        public const string SettingsButtonId = "TagAlign_OpenSettingsFolder";
+        public const string TabName = "TagAlign Tool";
+        public const string PanelName = "TagAlign Commands";
 
         public Result OnStartup(UIControlledApplication application)
         {
-            // Auto-create %AppData%\Roaming\RevitTagAlign\AlignConfig.xml on Revit start.
             try { ConfigStore.LoadOrCreate(); }
             catch { /* non-fatal */ }
 
-            application.CreateRibbonTab(TabName);
-            RibbonPanel panel = application.CreateRibbonPanel(TabName, PanelName);
+            try
+            {
+                application.CreateRibbonTab(TabName);
+            }
+            catch
+            {
+                // Tab may already exist from a previous load attempt.
+            }
+
+            RibbonPanel panel = null;
+            foreach (RibbonPanel p in application.GetRibbonPanels(TabName))
+            {
+                if (p.Name == PanelName) { panel = p; break; }
+            }
+            if (panel == null)
+                panel = application.CreateRibbonPanel(TabName, PanelName);
+
             string assemblyPath = Assembly.GetExecutingAssembly().Location;
 
-            // Button Text is what appears in KS search ("Align Tags").
+            // Button Text = what appears in KS search (must be unique / easy to find).
             PushButtonData alignBtn = new PushButtonData(
                 AlignTagsButtonId,
-                "Align\nTags",
+                "TagAlign Align\nSelected Tags",
                 assemblyPath,
                 "RevitTagAlign.AlignTagsCommand");
-            alignBtn.ToolTip = "Align Tags — stack tags/text notes with parallel leaders (pick point).";
+            alignBtn.ToolTip = "TagAlign Align Selected Tags — stack tags/text notes with parallel leaders.";
             alignBtn.LongDescription =
-                "Keywords: Tag Align, Align Tags, Tag Alignment, Text Note Align, Leader Align, TAT.\n" +
+                "Search keywords in KS: TagAlign Align Selected Tags, TagAlign, RTA.\n" +
                 "Select tags/text notes → Configure → Proceed → pick angle then tag position.\n" +
-                "Assign a Revit shortcut: type KS → search Align Tags.";
+                "Assign shortcut: type KS → search TagAlign.";
             panel.AddItem(alignBtn);
 
             PushButtonData dashboardBtn = new PushButtonData(
                 DashboardButtonId,
-                "Annotation\nDashboard",
+                "TagAlign Leader\nDashboard",
                 assemblyPath,
                 "RevitTagAlign.AnnotationDashboardCommand");
-            dashboardBtn.ToolTip = "Annotation Dashboard — live leader angle / landing / length control.";
+            dashboardBtn.ToolTip = "TagAlign Leader Dashboard — live leader angle / landing / length.";
             dashboardBtn.LongDescription =
-                "Keywords: Annotation Dashboard, Tag Dashboard, Leader Angle, Landing Distance, AD.\n" +
-                "Assign a Revit shortcut: type KS → search Annotation Dashboard.";
+                "Search keywords in KS: TagAlign Leader Dashboard, TagAlign.\n" +
+                "Assign shortcut: type KS → search TagAlign.";
             panel.AddItem(dashboardBtn);
 
             PushButtonData settingsBtn = new PushButtonData(
-                "OpenSettingsFolder",
-                "Settings\nFolder",
+                SettingsButtonId,
+                "TagAlign Settings\nFolder",
                 assemblyPath,
                 "RevitTagAlign.OpenSettingsFolderCommand");
-            settingsBtn.ToolTip = "Open the RevitTagAlign settings folder (AlignConfig.xml).";
+            settingsBtn.ToolTip = "Open TagAlign settings folder (AlignConfig.xml).";
             settingsBtn.LongDescription =
-                "Opens:\n" + ConfigStore.SettingsDirectory + "\n\n" +
-                "File: AlignConfig.xml";
+                "Search keywords in KS: TagAlign Settings Folder.\n" +
+                "Opens:\n" + ConfigStore.SettingsDirectory;
             panel.AddItem(settingsBtn);
 
             return Result.Succeeded;
