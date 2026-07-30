@@ -1,18 +1,14 @@
 Install TagAlign Tool for Revit 2023
 ====================================
 
-QUICK (recommended)
-1. Extract this zip
-2. Run Install.bat
-3. Restart Revit 2023
-4. Ribbon tab: TagAlign Tool
+1. Extract zip → run Install.bat
+2. FULLY close Revit, then reopen
+3. Check: Add-Ins tab → External Tools → "TagAlign Align Selected Tags"
 
-Keyboard shortcuts:
-1. Type KS in Revit
+Keyboard shortcut:
+1. Type KS
 2. Search: TagAlign
-3. Assign e.g. TA to "TagAlign Align Selected Tags"
+3. Assign TA to "TagAlign Align Selected Tags"
 
-If error 0x80131515: right-click RevitTagAlign.dll -> Properties -> Unblock
-
-Copy target:
-  %AppData%\Autodesk\Revit\Addins\2023\
+If KS is empty: External Tools must show TagAlign first (add-in loaded).
+If DLL error 0x80131515: Unblock RevitTagAlign.dll (Install.bat does this).

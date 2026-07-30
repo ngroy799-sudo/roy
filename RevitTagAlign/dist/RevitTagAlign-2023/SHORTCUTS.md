@@ -1,48 +1,36 @@
-# How to set Revit keyboard shortcuts for TagAlign Tool
+# TagAlign — Keyboard Shortcuts (KS)
 
-Revit **does not** let add-ins hard-code global shortcuts via API.
-You assign them once in Revit’s **Keyboard Shortcuts (KS)** dialog.
+## Why you might not see names in KS
 
-## Method 1 — Revit UI (recommended)
+Custom ribbon tabs are **sometimes missing** from Keyboard Shortcuts.
+This build registers commands in **three** places so KS can find them:
 
-1. Install the plugin and **restart Revit 2023**
-2. Confirm ribbon tab **TagAlign Tool** is visible
-3. In Revit, type **`KS`** then Enter  
-   (or: File → Options → User Interface → Keyboard Shortcuts)
-4. In **Search**, type: **`TagAlign`**  
-   (unique prefix — avoids colliding with Revit’s own “Align” commands)
-5. You should see:
-   - `TagAlign Align Selected Tags`
-   - `TagAlign Leader Dashboard`
-   - `TagAlign Settings Folder`
-6. Select the command → **Press new keys** → type shortcut → **Assign** → **OK**
+1. **Add-Ins → External Tools** (most reliable for KS)
+2. **Add-Ins → TagAlign** panel
+3. **TagAlign Tool** custom tab
 
-### Suggested shortcuts
+## Set shortcut (do this)
 
-| Command (KS search) | Suggested keys |
-|---------------------|----------------|
+1. Restart Revit after installing (fully close Revit, open again)
+2. Confirm you can run it:  
+   **Add-Ins** tab → **External Tools** → **TagAlign Align Selected Tags**
+3. Type **`KS`** → Enter
+4. In Search type: **`TagAlign`**
+5. Filter / list should show **All** (not only Architecture etc.)
+6. Select **TagAlign Align Selected Tags** → press keys e.g. **`TA`** → **Assign** → OK
+
+### Names to search
+
+| KS / External Tools name | Suggested key |
+|--------------------------|---------------|
 | TagAlign Align Selected Tags | `TA` |
 | TagAlign Leader Dashboard | `TD` |
 | TagAlign Settings Folder | `TS` |
 
-If keys conflict, try `TAA`, `TAL`, `RT`.
+## Still empty?
 
-## If search finds nothing
-
-1. Click ribbon **TagAlign Align Selected Tags** once (loads the command into KS)
-2. Open **KS** again → search **`TagAlign`**
-
-## Advanced — XML
-
-```
-%AppData%\Autodesk\Revit\Autodesk Revit 2023\KeyboardShortcuts.xml
-```
-
-Typical CommandIds after rename:
-
-```
-CustomCtrl_%CustomCtrl_%TagAlign Tool%TagAlign Commands%TagAlign Align Selected Tags
-CustomCtrl_%CustomCtrl_%TagAlign Tool%TagAlign Commands%TagAlign Leader Dashboard
-```
-
-See `KeyboardShortcuts-TagAlign.sample.xml`.
+1. FileLoadException / Unblock DLL first (`Install.bat` or Properties → Unblock)
+2. Check `%AppData%\Autodesk\Revit\Addins\2023\` has both `.dll` and `.addin`
+3. Open Revit → **Add-Ins → External Tools** — if TagAlign is not there, add-in did not load
+4. In KS, clear search, set filter to **All**, then search `TagAlign` again
+5. Click External Tools → TagAlign Align Selected Tags once, then reopen KS

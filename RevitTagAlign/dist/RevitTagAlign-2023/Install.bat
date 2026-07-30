@@ -30,11 +30,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 
 echo Done.
 echo.
-echo Next: CLOSE and reopen Revit 2023
-echo Ribbon tab: Tag Align
+echo Next: FULLY close and reopen Revit 2023
 echo.
-echo If error 0x80131515 still appears:
-echo   1. Right-click RevitTagAlign.dll in the Addins folder
-echo   2. Properties -^> check Unblock -^> OK
+echo Check load OK:
+echo   Add-Ins tab -^> External Tools -^> TagAlign Align Selected Tags
+echo.
+echo Keyboard shortcut:
+echo   Type KS -^> search TagAlign -^> Assign TA
+echo.
+echo If error 0x80131515:
+echo   Right-click RevitTagAlign.dll -^> Properties -^> Unblock
 echo.
 pause
