@@ -105,29 +105,9 @@ namespace RevitTagAlign
                 .ThenBy(i => i.OriginalHead.X)
                 .ToList();
 
-            bool tagsOnLeft = IsTagsOnLeft(cfg);
-            if (cfg.SwitchPickPointSide)
-                tagsOnLeft = !tagsOnLeft;
-
+            bool tagsOnLeft;
             XYZDir arrowDir;
-            double angleAbsDeg;
-            if (pickedAngle != null)
-            {
-                arrowDir = pickedAngle.Direction;
-                angleAbsDeg = pickedAngle.AngleDegreesAbs;
-                if (tagsOnLeft && arrowDir.X < 0) { arrowDir = new XYZDir(-arrowDir.X, -arrowDir.Y); }
-                if (!tagsOnLeft && arrowDir.X > 0) { arrowDir = new XYZDir(-arrowDir.X, -arrowDir.Y); }
-            }
-            else
-            {
-                double a = cfg.AngleDegrees * Math.PI / 180.0;
-                double sx = tagsOnLeft ? 1.0 : -1.0;
-                double sy = stackDown ? -1.0 : 1.0;
-                arrowDir = new XYZDir(sx * Math.Cos(a), sy * Math.Sin(a));
-                angleAbsDeg = cfg.AngleDegrees;
-            }
-
-            cfg.AngleDegrees = angleAbsDeg;
+            ResolveSideAndArrow(cfg, pickedAngle, stackDown, out tagsOnLeft, out arrowDir);
 
             int perColumn = items.Count;
             if (cfg.IntermittentAlignment && cfg.HorizontalSpacingFt > 1e-9)
@@ -152,22 +132,95 @@ namespace RevitTagAlign
                     x = tagPosition.X + col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
 
                 XYZ head = new XYZ(x, y, tagPosition.Z);
-
-                AnnotationItem item = items[i];
-                XYZ host = item.HostPoint ?? head;
-
-                double landing = cfg.ConstantLanding
-                    ? cfg.LandingDistanceFt
-                    : ComputeLandingFromHost(head, host, arrowDir, landingSign);
-
-                XYZ elbow = new XYZ(head.X + landingSign * landing, head.Y, head.Z);
-                XYZ freeEnd = ProjectHostOntoArrow(elbow, host, arrowDir);
-
-                if (item.Element is IndependentTag tag)
-                    PlaceTag(tag, head, elbow, freeEnd, host, cfg, item);
-                else if (item.Element is TextNote tn)
-                    PlaceTextNote(tn, head, elbow, freeEnd, host, cfg, tagsOnLeft);
+                ApplyItemGeometry(items[i], head, arrowDir, landingSign, cfg, tagsOnLeft);
             }
+        }
+
+        /// <summary>
+        /// Live preview after angle click: keep current tag text positions, update leader angles now.
+        /// </summary>
+        public static void PreviewAngleAtCurrentPositions(
+            List<AnnotationItem> items,
+            AlignConfig cfg,
+            PickedAngle pickedAngle)
+        {
+            if (items == null || items.Count == 0 || pickedAngle == null)
+                return;
+
+            bool stackDown = cfg.Corner == CornerAlignment.UpperLeft
+                          || cfg.Corner == CornerAlignment.UpperRight;
+
+            bool tagsOnLeft;
+            XYZDir arrowDir;
+            ResolveSideAndArrow(cfg, pickedAngle, stackDown, out tagsOnLeft, out arrowDir);
+
+            double landingSign = tagsOnLeft ? 1.0 : -1.0;
+
+            foreach (AnnotationItem item in items)
+            {
+                XYZ head = GetCurrentHead(item);
+                if (head == null) continue;
+                ApplyItemGeometry(item, head, arrowDir, landingSign, cfg, tagsOnLeft);
+            }
+        }
+
+        private static void ResolveSideAndArrow(
+            AlignConfig cfg,
+            PickedAngle pickedAngle,
+            bool stackDown,
+            out bool tagsOnLeft,
+            out XYZDir arrowDir)
+        {
+            tagsOnLeft = IsTagsOnLeft(cfg);
+            if (cfg.SwitchPickPointSide)
+                tagsOnLeft = !tagsOnLeft;
+
+            if (pickedAngle != null)
+            {
+                arrowDir = pickedAngle.Direction;
+                if (tagsOnLeft && arrowDir.X < 0) { arrowDir = new XYZDir(-arrowDir.X, -arrowDir.Y); }
+                if (!tagsOnLeft && arrowDir.X > 0) { arrowDir = new XYZDir(-arrowDir.X, -arrowDir.Y); }
+                cfg.AngleDegrees = pickedAngle.AngleDegreesAbs;
+            }
+            else
+            {
+                double a = cfg.AngleDegrees * Math.PI / 180.0;
+                double sx = tagsOnLeft ? 1.0 : -1.0;
+                double sy = stackDown ? -1.0 : 1.0;
+                arrowDir = new XYZDir(sx * Math.Cos(a), sy * Math.Sin(a));
+            }
+        }
+
+        private static XYZ GetCurrentHead(AnnotationItem item)
+        {
+            if (item.Element is IndependentTag tag)
+                return tag.TagHeadPosition;
+            if (item.Element is TextNote tn)
+                return tn.Coord;
+            return item.OriginalHead;
+        }
+
+        private static void ApplyItemGeometry(
+            AnnotationItem item,
+            XYZ head,
+            XYZDir arrowDir,
+            double landingSign,
+            AlignConfig cfg,
+            bool tagsOnLeft)
+        {
+            XYZ host = item.HostPoint ?? head;
+
+            double landing = cfg.ConstantLanding
+                ? cfg.LandingDistanceFt
+                : ComputeLandingFromHost(head, host, arrowDir, landingSign);
+
+            XYZ elbow = new XYZ(head.X + landingSign * landing, head.Y, head.Z);
+            XYZ freeEnd = ProjectHostOntoArrow(elbow, host, arrowDir);
+
+            if (item.Element is IndependentTag tag)
+                PlaceTag(tag, head, elbow, freeEnd, host, cfg, item);
+            else if (item.Element is TextNote tn)
+                PlaceTextNote(tn, head, elbow, freeEnd, host, cfg, tagsOnLeft);
         }
 
         private static bool IsTagsOnLeft(AlignConfig cfg)

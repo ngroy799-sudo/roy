@@ -35,7 +35,6 @@ namespace RevitTagAlign
 
             try
             {
-                // Capture selection immediately (important for keyboard shortcuts).
                 ICollection<ElementId> selectedIds = uidoc.Selection.GetElementIds().ToList();
                 var items = CollectAnnotations(doc, selectedIds);
 
@@ -49,64 +48,79 @@ namespace RevitTagAlign
                 AlignConfig cfg;
                 var optionsWindow = new AlignOptionsWindow();
                 TrySetRevitOwner(optionsWindow, uiapp);
-                bool? ok = optionsWindow.ShowDialog();
-                if (ok != true)
+                if (optionsWindow.ShowDialog() != true)
                     return Result.Cancelled;
                 cfg = optionsWindow.Config;
 
-                // Restore Revit focus before any PickPoint (fixes shortcut + 2-click after WPF dialog).
                 ActivateRevitWindow(uiapp);
 
-                PickedAngle pickedAngle = null;
-                XYZ tagPosition;
-
-                try
+                using (TransactionGroup tg = new TransactionGroup(doc, "Align Tags"))
                 {
-                    if (cfg.PickAngleThenTagPosition)
+                    tg.Start();
+
+                    PickedAngle pickedAngle = null;
+                    XYZ tagPosition;
+
+                    try
                     {
-                        // Exactly 2 clicks:
-                        // 1) Angle point (red arrow direction from host centroid -> click)
-                        // 2) Tag text position
-                        XYZ hostCentroid = AlignmentEngine.AverageHostPoint(items);
-                        XYZ anglePoint = PickPointSafe(
-                            uidoc,
-                            cfg,
-                            "Click 1/2: LEADER ANGLE (red arrow direction)");
+                        if (cfg.PickAngleThenTagPosition)
+                        {
+                            // Click 1: angle — immediately preview leader angle on current tag positions
+                            XYZ hostCentroid = AlignmentEngine.AverageHostPoint(items);
+                            XYZ anglePoint = PickPointSafe(
+                                uidoc, cfg,
+                                "Click 1/2: LEADER ANGLE (red arrow) — tags update after click");
 
-                        pickedAngle = AlignmentEngine.ComputeAngleFromReferenceAndPoint(
-                            hostCentroid, anglePoint);
+                            pickedAngle = AlignmentEngine.ComputeAngleFromReferenceAndPoint(
+                                hostCentroid, anglePoint);
 
-                        tagPosition = PickPointSafe(
-                            uidoc,
-                            cfg,
-                            string.Format(
-                                "Click 2/2: TAG POSITION (text)  [angle={0:0.#} deg]",
-                                pickedAngle.AngleDegreesAbs));
+                            using (Transaction txPreview = new Transaction(doc, "Preview Leader Angle"))
+                            {
+                                txPreview.Start();
+                                AlignmentEngine.PreviewAngleAtCurrentPositions(items, cfg, pickedAngle);
+                                txPreview.Commit();
+                            }
+
+                            Reselect(uidoc, items);
+                            try { uidoc.RefreshActiveView(); } catch { }
+
+                            // Click 2: tag position — immediately apply final stacked layout
+                            tagPosition = PickPointSafe(
+                                uidoc, cfg,
+                                string.Format(
+                                    "Click 2/2: TAG POSITION — stack moves here  [angle={0:0.#} deg]",
+                                    pickedAngle.AngleDegreesAbs));
+                        }
+                        else
+                        {
+                            tagPosition = PickPointSafe(
+                                uidoc, cfg,
+                                "Click: TAG POSITION (first tag text location)");
+                        }
                     }
-                    else
+                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
                     {
-                        tagPosition = PickPointSafe(
-                            uidoc,
-                            cfg,
-                            "Click: TAG POSITION (first tag text location)");
+                        tg.RollBack();
+                        Reselect(uidoc, items);
+                        return Result.Cancelled;
                     }
-                }
-                catch (Autodesk.Revit.Exceptions.OperationCanceledException)
-                {
-                    return Result.Cancelled;
+
+                    using (Transaction txFinal = new Transaction(doc, "Align Tags Position"))
+                    {
+                        txFinal.Start();
+                        AlignmentEngine.Align(doc, items, tagPosition, cfg, pickedAngle);
+                        txFinal.Commit();
+                    }
+
+                    tg.Assimilate();
                 }
 
-                using (Transaction tx = new Transaction(doc, "Align Tags"))
-                {
-                    tx.Start();
-                    AlignmentEngine.Align(doc, items, tagPosition, cfg, pickedAngle);
-                    tx.Commit();
-                }
+                try { uidoc.RefreshActiveView(); } catch { }
 
                 if (!cfg.KeepSelectionAfterUse)
                     uidoc.Selection.SetElementIds(new List<ElementId>());
                 else
-                    uidoc.Selection.SetElementIds(items.Select(i => i.Element.Id).ToList());
+                    Reselect(uidoc, items);
 
                 return Result.Succeeded;
             }
@@ -122,10 +136,17 @@ namespace RevitTagAlign
             }
         }
 
+        private static void Reselect(UIDocument uidoc, List<AlignmentEngine.AnnotationItem> items)
+        {
+            try
+            {
+                uidoc.Selection.SetElementIds(items.Select(i => i.Element.Id).ToList());
+            }
+            catch { }
+        }
+
         private static XYZ PickPointSafe(UIDocument uidoc, AlignConfig cfg, string prompt)
         {
-            // ObjectSnapTypes.None often breaks PickPoint — avoid it.
-            // Prefer the simple PickPoint(prompt) overload for reliability.
             if (cfg.TurnSnapsOff)
             {
                 try
@@ -170,7 +191,6 @@ namespace RevitTagAlign
         {
             try
             {
-                // Revit 2023+ UIApplication.MainWindowHandle
                 return uiapp.MainWindowHandle;
             }
             catch
