@@ -121,10 +121,11 @@
 
             <!-- Right options -->
             <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                <CheckBox x:Name="cbPickAngleMouse" Content="Pick Angle then Tag Position (Mouse)" IsChecked="True" Margin="0,4"
-                          ToolTip="1) Pick red arrow angle with 2 clicks  2) Pick tag text position"/>
+                <CheckBox x:Name="cbPickAngleMouse" Content="Pick Angle then Tag Position (2 clicks)" IsChecked="True" Margin="0,4"
+                          ToolTip="Click1 = red arrow angle, Click2 = tag text position"/>
                 <CheckBox x:Name="cbSwitchSide" Content="Switch Pick Point Side" Margin="0,4"/>
-                <CheckBox x:Name="cbAttachedEnd" Content="Attached End Tags" Margin="0,4"/>
+                <CheckBox x:Name="cbAttachedEnd" Content="Force Attached End Tags" Margin="0,4"
+                          ToolTip="ON = force Attached. OFF = keep each tag's original Attached/Free setting."/>
                 <CheckBox x:Name="cbKeepSelection" Content="Keep Selection After Use" Margin="0,4"/>
                 <CheckBox x:Name="cbTurnSnapsOff" Content="Turn Snaps Off" Margin="0,4"/>
 

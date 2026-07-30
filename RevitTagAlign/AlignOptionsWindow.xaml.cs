@@ -122,12 +122,13 @@ namespace RevitTagAlign
         {
             MessageBox.Show(
                 "Tag Align Configure\n\n" +
-                "Settings file (Roaming AppData):\n" +
-                ConfigStore.SettingsPath + "\n\n" +
-                "Tip: %AppData% = C:\\Users\\<you>\\AppData\\Roaming\n" +
-                "Not Local AppData.\n\n" +
-                "Use Save Settings or Proceed to write the file.\n" +
-                "Use Open Folder to jump there in Explorer.",
+                "2-click mouse picks (default ON):\n" +
+                "  Click 1/2  LEADER ANGLE — red arrow direction\n" +
+                "  Click 2/2  TAG POSITION — first tag text location\n\n" +
+                "Force Attached End Tags:\n" +
+                "  ON  = force Attached ends\n" +
+                "  OFF = keep each tag's original Attached/Free (recommended)\n\n" +
+                "Settings: " + ConfigStore.SettingsPath,
                 "Help",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);

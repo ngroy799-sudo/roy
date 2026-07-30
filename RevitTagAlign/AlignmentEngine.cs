@@ -10,6 +10,7 @@ namespace RevitTagAlign
     /// - Tag text / head position (stack)
     /// - Yellow = horizontal landing (head → elbow)
     /// - Red = angled arrow (elbow → host) at a common parallel angle
+    /// - Leader end condition: preserve original unless Force Attached is on
     /// </summary>
     public static class AlignmentEngine
     {
@@ -18,6 +19,8 @@ namespace RevitTagAlign
             public Element Element { get; set; }
             public XYZ OriginalHead { get; set; }
             public XYZ HostPoint { get; set; }
+            /// <summary>Original IndependentTag leader end condition (Attached/Free). Null for text notes.</summary>
+            public LeaderEndCondition? OriginalLeaderEndCondition { get; set; }
         }
 
         public static PickedAngle ComputeAngleFromTwoPoints(XYZ p1, XYZ p2)
@@ -38,11 +41,10 @@ namespace RevitTagAlign
             dx /= len;
             dy /= len;
 
-            double ang = Math.Atan2(dy, dx); // -PI..PI
+            double ang = Math.Atan2(dy, dx);
             double absDeg = Math.Abs(ang) * 180.0 / Math.PI;
             if (absDeg > 90.0)
             {
-                // Flip so we measure the acute leader angle from horizontal.
                 dx = -dx;
                 dy = -dy;
                 ang = Math.Atan2(dy, dx);
@@ -57,6 +59,32 @@ namespace RevitTagAlign
                 AngleDegreesAbs = absDeg,
                 Direction = new XYZDir(dx, dy)
             };
+        }
+
+        /// <summary>
+        /// 2-click angle: direction from reference (host centroid) toward the picked angle point.
+        /// </summary>
+        public static PickedAngle ComputeAngleFromReferenceAndPoint(XYZ reference, XYZ anglePoint)
+        {
+            return ComputeAngleFromTwoPoints(reference, anglePoint);
+        }
+
+        public static XYZ AverageHostPoint(IList<AnnotationItem> items)
+        {
+            if (items == null || items.Count == 0)
+                return XYZ.Zero;
+
+            double x = 0, y = 0, z = 0;
+            int n = 0;
+            foreach (var item in items)
+            {
+                XYZ p = item.HostPoint ?? item.OriginalHead;
+                if (p == null) continue;
+                x += p.X; y += p.Y; z += p.Z;
+                n++;
+            }
+            if (n == 0) return XYZ.Zero;
+            return new XYZ(x / n, y / n, z / n);
         }
 
         public static void Align(
@@ -81,14 +109,12 @@ namespace RevitTagAlign
             if (cfg.SwitchPickPointSide)
                 tagsOnLeft = !tagsOnLeft;
 
-            // Red arrow direction (elbow → element). Prefer mouse pick; else build from slider + corner.
             XYZDir arrowDir;
             double angleAbsDeg;
             if (pickedAngle != null)
             {
                 arrowDir = pickedAngle.Direction;
                 angleAbsDeg = pickedAngle.AngleDegreesAbs;
-                // Ensure arrow points toward host side (away from tag text side).
                 if (tagsOnLeft && arrowDir.X < 0) { arrowDir = new XYZDir(-arrowDir.X, -arrowDir.Y); }
                 if (!tagsOnLeft && arrowDir.X > 0) { arrowDir = new XYZDir(-arrowDir.X, -arrowDir.Y); }
             }
@@ -96,7 +122,7 @@ namespace RevitTagAlign
             {
                 double a = cfg.AngleDegrees * Math.PI / 180.0;
                 double sx = tagsOnLeft ? 1.0 : -1.0;
-                double sy = stackDown ? -1.0 : 1.0; // upper stack → arrows go down toward hosts
+                double sy = stackDown ? -1.0 : 1.0;
                 arrowDir = new XYZDir(sx * Math.Cos(a), sy * Math.Sin(a));
                 angleAbsDeg = cfg.AngleDegrees;
             }
@@ -110,7 +136,7 @@ namespace RevitTagAlign
                 perColumn = (int)Math.Ceiling(items.Count / (double)columnCount);
             }
 
-            double landingSign = tagsOnLeft ? 1.0 : -1.0; // landing extends from text toward hosts
+            double landingSign = tagsOnLeft ? 1.0 : -1.0;
 
             for (int i = 0; i < items.Count; i++)
             {
@@ -121,7 +147,10 @@ namespace RevitTagAlign
                     ? tagPosition.Y - row * cfg.VerticalSpacingFt
                     : tagPosition.Y + row * cfg.VerticalSpacingFt;
 
-                double x = tagPosition.X + col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
+                double x = tagPosition.X;
+                if (cfg.IntermittentAlignment)
+                    x = tagPosition.X + col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
+
                 XYZ head = new XYZ(x, y, tagPosition.Z);
 
                 AnnotationItem item = items[i];
@@ -132,12 +161,10 @@ namespace RevitTagAlign
                     : ComputeLandingFromHost(head, host, arrowDir, landingSign);
 
                 XYZ elbow = new XYZ(head.X + landingSign * landing, head.Y, head.Z);
-
-                // Free end on the angled ray so red segment angle is exact (when not attached).
                 XYZ freeEnd = ProjectHostOntoArrow(elbow, host, arrowDir);
 
                 if (item.Element is IndependentTag tag)
-                    PlaceTag(tag, head, elbow, freeEnd, host, cfg, tagsOnLeft);
+                    PlaceTag(tag, head, elbow, freeEnd, host, cfg, item);
                 else if (item.Element is TextNote tn)
                     PlaceTextNote(tn, head, elbow, freeEnd, host, cfg, tagsOnLeft);
             }
@@ -151,9 +178,6 @@ namespace RevitTagAlign
 
         private static double ComputeLandingFromHost(XYZ head, XYZ host, XYZDir arrowDir, double landingSign)
         {
-            // Place elbow so horizontal landing + angled ray aims near host.
-            // Elbow.Y = head.Y; elbow.X chosen so (host - elbow) aligns with arrowDir.
-            // host = elbow + t * arrowDir  =>  host.Y = head.Y + t * arrowDir.Y
             if (Math.Abs(arrowDir.Y) < 1e-9)
                 return Math.Max(0.25, Math.Abs(host.X - head.X) * 0.5);
 
@@ -167,7 +191,6 @@ namespace RevitTagAlign
 
         private static XYZ ProjectHostOntoArrow(XYZ elbow, XYZ host, XYZDir arrowDir)
         {
-            // Closest point on ray elbow + t*dir (t>=0) to host — keeps arrow angle exact.
             XYZ dir = new XYZ(arrowDir.X, arrowDir.Y, 0);
             XYZ toHost = host - elbow;
             double t = toHost.DotProduct(dir);
@@ -182,7 +205,7 @@ namespace RevitTagAlign
             XYZ freeEnd,
             XYZ originalHost,
             AlignConfig cfg,
-            bool tagsOnLeft)
+            AnnotationItem item)
         {
             tag.TagHeadPosition = head;
 
@@ -195,27 +218,43 @@ namespace RevitTagAlign
 
             Reference firstRef = refs.First();
 
-            if (cfg.AttachedEndTags)
+            // Preserve original Attached/Free unless user forces Attached.
+            LeaderEndCondition desired = ResolveEndCondition(cfg, item.OriginalLeaderEndCondition);
+
+            try
             {
-                try { tag.LeaderEndCondition = LeaderEndCondition.Attached; }
-                catch { }
+                if (tag.LeaderEndCondition != desired)
+                    tag.LeaderEndCondition = desired;
             }
-            else
+            catch { /* some tags disallow changing end condition */ }
+
+            if (desired == LeaderEndCondition.Free)
             {
-                try
-                {
-                    tag.LeaderEndCondition = LeaderEndCondition.Free;
-                    tag.SetLeaderEnd(firstRef, freeEnd);
-                }
+                try { tag.SetLeaderEnd(firstRef, freeEnd); }
                 catch
                 {
                     try { tag.SetLeaderEnd(firstRef, originalHost); }
                     catch { }
                 }
             }
+            // Attached: do not SetLeaderEnd — keep host attachment.
 
             try { tag.SetLeaderElbow(firstRef, elbow); }
             catch { }
+        }
+
+        private static LeaderEndCondition ResolveEndCondition(
+            AlignConfig cfg,
+            LeaderEndCondition? original)
+        {
+            if (cfg.AttachedEndTags)
+                return LeaderEndCondition.Attached;
+
+            // Keep original setting (Attached or Free). Default to Attached if unknown.
+            if (original.HasValue)
+                return original.Value;
+
+            return LeaderEndCondition.Attached;
         }
 
         private static void PlaceTextNote(
@@ -239,8 +278,12 @@ namespace RevitTagAlign
                 foreach (Leader leader in leaders)
                 {
                     leader.Elbow = elbow;
-                    if (!cfg.AttachedEndTags)
-                        leader.End = freeEnd;
+                    // Text notes: only move end when forcing free-style placement and not preserving attach.
+                    // Keep original end when AttachedEndTags is false (preserve).
+                    if (cfg.AttachedEndTags)
+                        continue;
+                    // Preserve text note leader end unless it was free-style — leave End as originalHost.
+                    // Do not overwrite with freeEnd projection when preserving.
                 }
             }
             catch { }
@@ -262,6 +305,17 @@ namespace RevitTagAlign
                         : HorizontalTextAlignment.Left;
                     break;
             }
+        }
+
+        public static LeaderEndCondition? GetTagLeaderEndCondition(IndependentTag tag)
+        {
+            try
+            {
+                if (tag.HasLeader)
+                    return tag.LeaderEndCondition;
+            }
+            catch { }
+            return null;
         }
 
         public static XYZ GetTagHostPoint(IndependentTag tag)

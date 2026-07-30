@@ -22,6 +22,10 @@ namespace RevitTagAlign
     {
         public CornerAlignment Corner { get; set; } = CornerAlignment.UpperLeft;
         public bool SwitchPickPointSide { get; set; }
+        /// <summary>
+        /// When true: force LeaderEndCondition.Attached on all tags.
+        /// When false: preserve each tag's original Attached/Free setting (do not force Free).
+        /// </summary>
         public bool AttachedEndTags { get; set; }
         public bool KeepSelectionAfterUse { get; set; }
         public bool TurnSnapsOff { get; set; }
