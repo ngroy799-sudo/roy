@@ -1,0 +1,54 @@
+name: Build RevitTagAlign DLL
+
+on:
+  push:
+    branches:
+      - cursor/revit-tag-align-tool-845e
+      - main
+    paths:
+      - 'RevitTagAlign/**'
+      - '.github/workflows/build-revit-tag-align.yml'
+  pull_request:
+    paths:
+      - 'RevitTagAlign/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore RevitTagAlign/RevitTagAlign.csproj
+
+      - name: Build Release
+        run: dotnet build RevitTagAlign/RevitTagAlign.csproj -c Release --no-restore
+
+      - name: Pack install folder
+        shell: pwsh
+        run: |
+          $out = "RevitTagAlign/dist/RevitTagAlign-2023"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item RevitTagAlign/bin/Release/RevitTagAlign.dll $out/
+          Copy-Item RevitTagAlign/RevitTagAlign.addin $out/
+          @"
+          Install for Revit 2023:
+          1. Copy RevitTagAlign.dll and RevitTagAlign.addin to:
+             %AppData%\Autodesk\Revit\Addins\2023\
+          2. Restart Revit 2023
+          3. Open ribbon tab: Tag Align
+          "@ | Set-Content "$out/INSTALL.txt"
+
+      - name: Upload DLL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RevitTagAlign-2023
+          path: RevitTagAlign/dist/RevitTagAlign-2023/
+          if-no-files-found: error
