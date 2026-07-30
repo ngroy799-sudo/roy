@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SAMPLE ONLY — do not replace your whole KeyboardShortcuts.xml with this file.
+  Prefer assigning shortcuts in Revit (type KS), then Export if needed.
+
+  After Tag Align is loaded once, CommandId usually looks like:
+    CustomCtrl_%CustomCtrl_%Tag Align%Alignment%Align Tags
+    CustomCtrl_%CustomCtrl_%Tag Align%Alignment%Annotation Dashboard
+
+  You can paste matching <ShortcutItem> rows into:
+    %AppData%\Autodesk\Revit\Autodesk Revit 2023\KeyboardShortcuts.xml
+  then restart Revit. Verify ids in an Export from your machine first.
+-->
+<Shortcuts>
+  <ShortcutItem
+      CommandName="Align Tags"
+      CommandId="CustomCtrl_%CustomCtrl_%Tag Align%Alignment%Align Tags"
+      Shortcuts="TA"
+      Paths="Tag Align&gt;Alignment" />
+  <ShortcutItem
+      CommandName="Annotation Dashboard"
+      CommandId="CustomCtrl_%CustomCtrl_%Tag Align%Alignment%Annotation Dashboard"
+      Shortcuts="AD"
+      Paths="Tag Align&gt;Alignment" />
+</Shortcuts>
