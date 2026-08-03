@@ -526,7 +526,7 @@ namespace RevitTagAlign
         {
             try
             {
-                IList<Element> els = tag.GetTaggedLocalElements();
+                ICollection<Element> els = tag.GetTaggedLocalElements();
                 if (els == null || els.Count == 0)
                     return null;
                 Element el = els.First();
@@ -545,7 +545,7 @@ namespace RevitTagAlign
         {
             try
             {
-                IList<Element> els = tag.GetTaggedLocalElements();
+                ICollection<Element> els = tag.GetTaggedLocalElements();
                 if (els == null || els.Count == 0)
                     return null;
                 BoundingBoxXYZ bb = els.First().get_BoundingBox(null);
