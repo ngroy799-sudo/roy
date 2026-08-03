@@ -44,8 +44,10 @@ Matches Bird Tools official Help + Configure:
   - Lower: that tag at stack top; others grow down
 - Repeat clicks until ESC
 - Yellow = horizontal landing; Red = parallel angled arrows (common-angle mode)
+- **Vertical Spacing**: freely set (mm); enforces a no-overlap minimum from tag height
+- **Leader contact face**: pinned to the original host point (does not switch left→top etc.) unless Force Attached is ON
 - **Constant Landing**: ON = fixed landing rather than common angle
-- **Force Attached End Tags**: ON = force Attached; OFF = keep original Attached/Free
+- **Force Attached End Tags**: ON = Revit Attached (may re-pick face); OFF = Free pinned to original face
 - Options: Switch Pick Point Side, Keep Selection, Turn Snaps Off
 - TextNote justification, Vertical / Intermittent spacing
 - May open Configure with empty selection, then pick tags after Proceed
