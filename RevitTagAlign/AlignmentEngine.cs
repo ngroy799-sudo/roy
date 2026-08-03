@@ -145,19 +145,17 @@ namespace RevitTagAlign
                         || cfg.Corner == CornerAlignment.UpperRight;
             double stackAwaySign = isUpper ? 1.0 : -1.0;
 
-            // Order so index 0 = closest-to-hosts tag for this corner.
-            // Upper hosts are "below" → lowest original heads first.
-            // Lower hosts are "above" → highest original heads first.
+            // Order by host contact height so multi-level picks stack predictably.
             items = items
                 .OrderBy(i =>
                 {
-                    XYZ h = i.OriginalHead ?? XYZ.Zero;
+                    XYZ h = i.HostPoint ?? i.OriginalHead ?? XYZ.Zero;
                     double u = h.DotProduct(up);
                     return isUpper ? u : -u;
                 })
                 .ThenBy(i =>
                 {
-                    XYZ h = i.OriginalHead ?? XYZ.Zero;
+                    XYZ h = i.HostPoint ?? i.OriginalHead ?? XYZ.Zero;
                     return h.DotProduct(right);
                 })
                 .ToList();
@@ -179,8 +177,8 @@ namespace RevitTagAlign
             }
 
             double step = ComputeStackStep(items, view, cfg);
-            double landing = ResolveUniformLanding(items, tagPosition, landingDir, arrowWorld, cfg);
-            bool commonAngle = !cfg.ConstantLanding;
+            // One shared landing length for ALL tags → text column stays vertically aligned.
+            double landing = ResolveUniformLanding(cfg);
 
             for (int i = 0; i < items.Count; i++)
             {
@@ -189,6 +187,7 @@ namespace RevitTagAlign
 
                 // row 0 = closest tag at pick; others grow away from hosts.
                 double alongUp = stackAwaySign * row * step;
+                // Same Right coordinate for every row → vertical text alignment.
                 double alongRight = 0.0;
                 if (cfg.IntermittentAlignment)
                     alongRight = col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
@@ -196,9 +195,13 @@ namespace RevitTagAlign
                 // Full view-plane offset — do NOT clamp Z (section Up is often world Z).
                 XYZ head = tagPosition + up * alongUp + right * alongRight;
 
-                // Pin end to original host contact point so the face never switches.
+                // Uniform horizontal landing (equal length) — prevents "甩掉" / uneven text.
+                XYZ elbow = head + landingDir.Multiply(landing);
+
+                // Pin end to original host contact point (face never switches).
+                // Do NOT re-solve elbows for parallel — that made landings unequal and
+                // caused leaders to "fly" farther on every click.
                 XYZ host = items[i].HostPoint ?? head;
-                XYZ elbow = ComputeElbow(head, host, landingDir, landing, arrowWorld, commonAngle);
 
                 ApplyItemGeometry(items[i], head, elbow, host, host, cfg, tagsOnLeft);
             }
@@ -227,63 +230,30 @@ namespace RevitTagAlign
 
             double landingSign = tagsOnLeft ? 1.0 : -1.0;
             XYZ landingDir = right * landingSign;
-            double landing = cfg.ConstantLanding
-                ? Math.Max(0.1, cfg.LandingDistanceFt)
-                : Math.Max(0.25, cfg.LandingDistanceFt > 0 ? cfg.LandingDistanceFt * 0.5 : 1.0);
-            bool commonAngle = !cfg.ConstantLanding;
+            double landing = ResolveUniformLanding(cfg);
 
             foreach (AnnotationItem item in items)
             {
                 XYZ head = GetCurrentHead(item);
                 if (head == null) continue;
                 XYZ host = item.HostPoint ?? head;
-                XYZ elbow = ComputeElbow(head, host, landingDir, landing, arrowWorld, commonAngle);
+                XYZ elbow = head + landingDir.Multiply(landing);
                 ApplyItemGeometry(item, head, elbow, host, host, cfg, tagsOnLeft);
             }
         }
 
         /// <summary>
-        /// Horizontal landing from head; when commonAngle, nudge elbow so the
-        /// angled segment stays parallel while the free end stays on the original host point.
+        /// Shared yellow landing length for the whole stack (keeps tag texts vertically aligned).
+        /// Never scales with click↔host distance — that caused multi-tag leaders to fly across the view.
         /// </summary>
-        private static XYZ ComputeElbow(
-            XYZ head,
-            XYZ host,
-            XYZ landingDir,
-            double landing,
-            XYZ arrowWorld,
-            bool commonAngle)
+        private static double ResolveUniformLanding(AlignConfig cfg)
         {
-            XYZ elbow = head + landingDir * landing;
-            if (!commonAngle || arrowWorld == null || arrowWorld.GetLength() < 1e-9)
-                return elbow;
+            if (cfg.ConstantLanding)
+                return Math.Max(0.1, Math.Min(cfg.LandingDistanceFt, 20.0));
 
-            // Prefer elbow on ray host - t*arrow so (host - elbow) || arrow, while
-            // landing stays as horizontal as possible (match head along "up" via arrow).
-            XYZ arrow = arrowWorld.Normalize();
-            XYZ L = landingDir.Normalize();
-            // Build an "up-ish" axis perpendicular to L in the plane of L and arrow.
-            XYZ upApprox = arrow - L.Multiply(arrow.DotProduct(L));
-            if (upApprox.GetLength() < 1e-9)
-                return elbow;
-            upApprox = upApprox.Normalize();
-
-            // Solve: host - t*arrow = head + k*L  ⇒  (host-head)·upApprox = t*(arrow·upApprox)
-            double denom = arrow.DotProduct(upApprox);
-            if (Math.Abs(denom) < 1e-9)
-                return elbow;
-
-            double t = (host - head).DotProduct(upApprox) / denom;
-            if (t < 0.1)
-                t = 0.1;
-
-            XYZ elbowParallel = host - arrow.Multiply(t);
-            // Keep landing on the host side of the head.
-            double alongLand = (elbowParallel - head).DotProduct(L);
-            if (alongLand < 0.05)
-                return elbow;
-
-            return elbowParallel;
+            // Modest stable default (~ half of saved Landing Distance, capped ~900mm).
+            double d = cfg.LandingDistanceFt > 0.1 ? cfg.LandingDistanceFt * 0.5 : 1.0;
+            return Math.Max(0.25, Math.Min(d, 3.0));
         }
 
         /// <summary>
@@ -340,34 +310,6 @@ namespace RevitTagAlign
             {
                 return 0.35;
             }
-        }
-
-        private static double ResolveUniformLanding(
-            List<AnnotationItem> items,
-            XYZ tagPosition,
-            XYZ landingDir,
-            XYZ arrowWorld,
-            AlignConfig cfg)
-        {
-            if (cfg.ConstantLanding)
-                return Math.Max(0.1, cfg.LandingDistanceFt);
-
-            // Auto: stable yellow landing from average host distance along landing.
-            double sum = 0;
-            int n = 0;
-            foreach (var item in items)
-            {
-                XYZ host = item.HostPoint ?? tagPosition;
-                XYZ delta = host - tagPosition;
-                double along = delta.DotProduct(landingDir);
-                if (along > 0.1)
-                {
-                    sum += along * 0.35;
-                    n++;
-                }
-            }
-            double auto = n > 0 ? sum / n : 1.0;
-            return Math.Max(0.25, Math.Min(auto, 10.0));
         }
 
         private static void ResolveSideAndArrow(
@@ -555,20 +497,69 @@ namespace RevitTagAlign
 
         public static XYZ GetTagHostPoint(IndependentTag tag)
         {
+            XYZ end = null;
             try
             {
                 IList<Reference> refs = tag.GetTaggedReferences();
                 if (refs != null && refs.Count > 0 && tag.HasLeader)
-                {
-                    // Works for Free and Attached — captures the contact point on the chosen face.
-                    XYZ end = tag.GetLeaderEnd(refs.First());
-                    if (end != null)
-                        return end;
-                }
+                    end = tag.GetLeaderEnd(refs.First());
             }
             catch { }
 
+            XYZ anchor = TryGetTaggedElementAnchor(tag);
+            if (end != null && anchor != null)
+            {
+                // Recover from a previous "fly-away": end drifted far from the element.
+                if (end.DistanceTo(anchor) > 20.0) // > ~6m
+                    return ClosestPointOnTaggedElement(tag, end) ?? anchor;
+                return end;
+            }
+
+            if (end != null)
+                return end;
+            if (anchor != null)
+                return anchor;
             return tag.TagHeadPosition;
+        }
+
+        private static XYZ TryGetTaggedElementAnchor(IndependentTag tag)
+        {
+            try
+            {
+                IList<Element> els = tag.GetTaggedLocalElements();
+                if (els == null || els.Count == 0)
+                    return null;
+                Element el = els.First();
+                Location loc = el.Location;
+                if (loc is LocationPoint lp)
+                    return lp.Point;
+                BoundingBoxXYZ bb = el.get_BoundingBox(null);
+                if (bb != null)
+                    return (bb.Min + bb.Max) * 0.5;
+            }
+            catch { }
+            return null;
+        }
+
+        private static XYZ ClosestPointOnTaggedElement(IndependentTag tag, XYZ from)
+        {
+            try
+            {
+                IList<Element> els = tag.GetTaggedLocalElements();
+                if (els == null || els.Count == 0)
+                    return null;
+                BoundingBoxXYZ bb = els.First().get_BoundingBox(null);
+                if (bb == null)
+                    return null;
+                double x = Math.Max(bb.Min.X, Math.Min(bb.Max.X, from.X));
+                double y = Math.Max(bb.Min.Y, Math.Min(bb.Max.Y, from.Y));
+                double z = Math.Max(bb.Min.Z, Math.Min(bb.Max.Z, from.Z));
+                return new XYZ(x, y, z);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public static XYZ GetTextNoteHostPoint(TextNote tn)
