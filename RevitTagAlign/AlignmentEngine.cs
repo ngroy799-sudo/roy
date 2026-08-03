@@ -13,7 +13,9 @@ namespace RevitTagAlign
     /// - Yellow = horizontal landing along view Right (aligned)
     /// - Red = parallel angled arrows (common-angle mode) toward hosts
     /// - Constant Landing ON: fixed landing length; angled segments aim at hosts (not common angle)
-    /// - Leader end: preserve original unless Force Attached is on
+    /// - Leader end: pinned to original host contact point (face does not switch)
+    ///   unless Force Attached is on
+    /// - Stack uses full view Right/Up offsets (no Z wipe — required for sections)
     /// </summary>
     public static class AlignmentEngine
     {
@@ -21,6 +23,7 @@ namespace RevitTagAlign
         {
             public Element Element { get; set; }
             public XYZ OriginalHead { get; set; }
+            /// <summary>Original leader end on the host (contact point / face). Never relocate.</summary>
             public XYZ HostPoint { get; set; }
             public LeaderEndCondition? OriginalLeaderEndCondition { get; set; }
         }
@@ -190,24 +193,14 @@ namespace RevitTagAlign
                 if (cfg.IntermittentAlignment)
                     alongRight = col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
 
+                // Full view-plane offset — do NOT clamp Z (section Up is often world Z).
                 XYZ head = tagPosition + up * alongUp + right * alongRight;
-                head = new XYZ(head.X, head.Y, tagPosition.Z);
 
-                XYZ elbow = head + landingDir * landing;
+                // Pin end to original host contact point so the face never switches.
                 XYZ host = items[i].HostPoint ?? head;
+                XYZ elbow = ComputeElbow(head, host, landingDir, landing, arrowWorld, commonAngle);
 
-                XYZ freeEnd;
-                if (commonAngle)
-                {
-                    freeEnd = ProjectHostOntoArrow(elbow, host, arrowWorld);
-                }
-                else
-                {
-                    // Constant Landing: fixed landing; angled segment aims at host (no common angle).
-                    freeEnd = AimAtHost(elbow, host);
-                }
-
-                ApplyItemGeometry(items[i], head, elbow, freeEnd, host, cfg, tagsOnLeft);
+                ApplyItemGeometry(items[i], head, elbow, host, host, cfg, tagsOnLeft);
             }
         }
 
@@ -243,28 +236,71 @@ namespace RevitTagAlign
             {
                 XYZ head = GetCurrentHead(item);
                 if (head == null) continue;
-                XYZ elbow = head + landingDir * landing;
                 XYZ host = item.HostPoint ?? head;
-                XYZ freeEnd = commonAngle
-                    ? ProjectHostOntoArrow(elbow, host, arrowWorld)
-                    : AimAtHost(elbow, host);
-                ApplyItemGeometry(item, head, elbow, freeEnd, host, cfg, tagsOnLeft);
+                XYZ elbow = ComputeElbow(head, host, landingDir, landing, arrowWorld, commonAngle);
+                ApplyItemGeometry(item, head, elbow, host, host, cfg, tagsOnLeft);
             }
         }
 
         /// <summary>
-        /// Center-to-center stack step: at least user Vertical Spacing, and
-        /// at least tallest tag height + padding so texts never overlap.
+        /// Horizontal landing from head; when commonAngle, nudge elbow so the
+        /// angled segment stays parallel while the free end stays on the original host point.
+        /// </summary>
+        private static XYZ ComputeElbow(
+            XYZ head,
+            XYZ host,
+            XYZ landingDir,
+            double landing,
+            XYZ arrowWorld,
+            bool commonAngle)
+        {
+            XYZ elbow = head + landingDir * landing;
+            if (!commonAngle || arrowWorld == null || arrowWorld.GetLength() < 1e-9)
+                return elbow;
+
+            // Prefer elbow on ray host - t*arrow so (host - elbow) || arrow, while
+            // landing stays as horizontal as possible (match head along "up" via arrow).
+            XYZ arrow = arrowWorld.Normalize();
+            XYZ L = landingDir.Normalize();
+            // Build an "up-ish" axis perpendicular to L in the plane of L and arrow.
+            XYZ upApprox = arrow - L.Multiply(arrow.DotProduct(L));
+            if (upApprox.GetLength() < 1e-9)
+                return elbow;
+            upApprox = upApprox.Normalize();
+
+            // Solve: host - t*arrow = head + k*L  ⇒  (host-head)·upApprox = t*(arrow·upApprox)
+            double denom = arrow.DotProduct(upApprox);
+            if (Math.Abs(denom) < 1e-9)
+                return elbow;
+
+            double t = (host - head).DotProduct(upApprox) / denom;
+            if (t < 0.1)
+                t = 0.1;
+
+            XYZ elbowParallel = host - arrow.Multiply(t);
+            // Keep landing on the host side of the head.
+            double alongLand = (elbowParallel - head).DotProduct(L);
+            if (alongLand < 0.05)
+                return elbow;
+
+            return elbowParallel;
+        }
+
+        /// <summary>
+        /// Center-to-center stack step from Configure → Vertical Spacing (mm→ft).
+        /// Never smaller than tallest tag height + padding, so texts cannot overlap.
         /// </summary>
         private static double ComputeStackStep(List<AnnotationItem> items, View view, AlignConfig cfg)
         {
-            double user = Math.Max(0.05, cfg.VerticalSpacingFt);
+            // User spacing is free to set; clamp only pathological zeros.
+            double user = Math.Max(0.01, cfg.VerticalSpacingFt);
             double maxH = 0.0;
             foreach (var item in items)
                 maxH = Math.Max(maxH, EstimateAnnotationHeight(item.Element, view));
 
-            const double padding = 0.1; // ~30mm gap between boxes
-            double minNoOverlap = maxH + padding;
+            // ~15mm padding beyond bbox so glyphs do not touch.
+            const double padding = 0.05;
+            double minNoOverlap = Math.Max(0.15, maxH + padding);
             return Math.Max(user, minNoOverlap);
         }
 
@@ -404,24 +440,6 @@ namespace RevitTagAlign
                 || cfg.Corner == CornerAlignment.LowerLeft;
         }
 
-        private static XYZ ProjectHostOntoArrow(XYZ elbow, XYZ host, XYZ arrowWorld)
-        {
-            XYZ dir = arrowWorld.Normalize();
-            XYZ toHost = host - elbow;
-            double t = toHost.DotProduct(dir);
-            if (t < 0.1) t = Math.Max(0.5, toHost.GetLength());
-            return elbow + dir.Multiply(t);
-        }
-
-        private static XYZ AimAtHost(XYZ elbow, XYZ host)
-        {
-            XYZ delta = host - elbow;
-            double len = delta.GetLength();
-            if (len < 0.1)
-                return elbow + new XYZ(0.5, 0, 0);
-            return host;
-        }
-
         private static void PlaceTag(
             IndependentTag tag,
             XYZ head,
@@ -441,7 +459,12 @@ namespace RevitTagAlign
                 return;
 
             Reference firstRef = refs.First();
-            LeaderEndCondition desired = ResolveEndCondition(cfg, item.OriginalLeaderEndCondition);
+
+            // Unless Force Attached: always Free + pin to original contact point
+            // so Revit cannot re-pick another face (left → top/bottom/right).
+            LeaderEndCondition desired = cfg.AttachedEndTags
+                ? LeaderEndCondition.Attached
+                : LeaderEndCondition.Free;
 
             try
             {
@@ -450,29 +473,22 @@ namespace RevitTagAlign
             }
             catch { }
 
-            if (desired == LeaderEndCondition.Free)
+            XYZ pin = originalHost ?? freeEnd ?? item.HostPoint;
+            if (desired == LeaderEndCondition.Free && pin != null)
             {
-                try { tag.SetLeaderEnd(firstRef, freeEnd); }
-                catch
-                {
-                    try { tag.SetLeaderEnd(firstRef, originalHost); }
-                    catch { }
-                }
+                try { tag.SetLeaderEnd(firstRef, pin); }
+                catch { }
             }
 
             try { tag.SetLeaderElbow(firstRef, elbow); }
             catch { }
-        }
 
-        private static LeaderEndCondition ResolveEndCondition(
-            AlignConfig cfg,
-            LeaderEndCondition? original)
-        {
-            if (cfg.AttachedEndTags)
-                return LeaderEndCondition.Attached;
-            if (original.HasValue)
-                return original.Value;
-            return LeaderEndCondition.Attached;
+            // Re-assert end after elbow — some Revit builds move the end when elbow changes.
+            if (desired == LeaderEndCondition.Free && pin != null)
+            {
+                try { tag.SetLeaderEnd(firstRef, pin); }
+                catch { }
+            }
         }
 
         private static void PlaceTextNote(
@@ -493,12 +509,15 @@ namespace RevitTagAlign
                 if (leaders == null || leaders.Count == 0)
                     return;
 
+                XYZ pin = originalHost ?? freeEnd;
                 foreach (Leader leader in leaders)
                 {
                     leader.Elbow = elbow;
                     if (cfg.AttachedEndTags)
                         continue;
-                    try { leader.End = freeEnd; }
+                    if (pin == null)
+                        continue;
+                    try { leader.End = pin; }
                     catch { }
                 }
             }
@@ -540,7 +559,12 @@ namespace RevitTagAlign
             {
                 IList<Reference> refs = tag.GetTaggedReferences();
                 if (refs != null && refs.Count > 0 && tag.HasLeader)
-                    return tag.GetLeaderEnd(refs.First());
+                {
+                    // Works for Free and Attached — captures the contact point on the chosen face.
+                    XYZ end = tag.GetLeaderEnd(refs.First());
+                    if (end != null)
+                        return end;
+                }
             }
             catch { }
 

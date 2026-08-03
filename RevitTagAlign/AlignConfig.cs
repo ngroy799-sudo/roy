@@ -23,8 +23,8 @@ namespace RevitTagAlign
         public CornerAlignment Corner { get; set; } = CornerAlignment.UpperLeft;
         public bool SwitchPickPointSide { get; set; }
         /// <summary>
-        /// When true: force LeaderEndCondition.Attached on all tags.
-        /// When false: preserve each tag's original Attached/Free setting (do not force Free).
+        /// When true: force LeaderEndCondition.Attached (Revit may re-pick the host face).
+        /// When false (default): Free end pinned to the original contact point — face never switches.
         /// </summary>
         public bool AttachedEndTags { get; set; }
         public bool KeepSelectionAfterUse { get; set; }
@@ -48,8 +48,11 @@ namespace RevitTagAlign
         public bool ConstantLanding { get; set; }
         /// <summary>Horizontal landing length (yellow segment) in feet.</summary>
         public double LandingDistanceFt { get; set; } = 5.0; // 1524 mm
-        /// <summary>Vertical spacing between stacked tag texts in feet.</summary>
-        public double VerticalSpacingFt { get; set; } = 0.2; // 60.96 mm
+        /// <summary>
+        /// Vertical center-to-center spacing between stacked tag texts (feet).
+        /// User-configurable; engine also enforces a no-overlap minimum from tag height.
+        /// </summary>
+        public double VerticalSpacingFt { get; set; } = 0.5; // 152.4 mm — clearer default gap
         public bool IntermittentAlignment { get; set; }
         public double HorizontalSpacingFt { get; set; } = 10.0; // 3048 mm
     }

@@ -64,7 +64,7 @@ namespace RevitTagAlign
                 tbLanding.IsEnabled = cfg.ConstantLanding;
                 tbLanding.Text = FeetToMmText(cfg.LandingDistanceFt, 1524);
 
-                tbVertSpacing.Text = FeetToMmText(cfg.VerticalSpacingFt, 60.96);
+                tbVertSpacing.Text = FeetToMmText(cfg.VerticalSpacingFt, 152.4);
 
                 cbIntermittent.IsChecked = cfg.IntermittentAlignment;
                 tbHorizSpacing.IsEnabled = cfg.IntermittentAlignment;
@@ -129,8 +129,10 @@ namespace RevitTagAlign
                 "   Upper: stack grows up from pick. Lower: grows down.\n" +
                 "5. Click again to re-adjust; ESC to finish.\n\n" +
                 "Constant Landing: ON = fixed landing (not common angle).\n" +
-                "Force Attached End Tags: ON=force Attached, OFF=keep original.\n" +
-                "Vertical Spacing: minimum gap; tags will not overlap.\n\n" +
+                "Vertical Spacing: freely set gap between tag texts (mm);\n" +
+                "  also enforces a minimum so texts never overlap.\n" +
+                "Force Attached End Tags: OFF = pin leader to original face\n" +
+                "  (left stays left). ON = Revit Attached (may switch face).\n\n" +
                 "Settings: " + ConfigStore.SettingsPath,
                 "Help",
                 MessageBoxButton.OK,
@@ -218,7 +220,7 @@ namespace RevitTagAlign
             cfg.ConstantLanding = cbConstantLanding.IsChecked == true;
             cfg.LandingDistanceFt = ParseMmToFeet(tbLanding.Text, 1524);
 
-            cfg.VerticalSpacingFt = ParseMmToFeet(tbVertSpacing.Text, 60.96);
+            cfg.VerticalSpacingFt = ParseMmToFeet(tbVertSpacing.Text, 152.4);
 
             cfg.IntermittentAlignment = cbIntermittent.IsChecked == true;
             cfg.HorizontalSpacingFt = ParseMmToFeet(tbHorizSpacing.Text, 3048);

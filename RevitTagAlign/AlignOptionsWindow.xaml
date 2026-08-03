@@ -129,7 +129,7 @@
                            Text="Angle is fixed by corner + Angle slider. One click = closest tag to tagged elements (taghead). Other tags stack away from hosts. Repeat until ESC."/>
                 <CheckBox x:Name="cbSwitchSide" Content="Switch Pick Point Side" Margin="0,4"/>
                 <CheckBox x:Name="cbAttachedEnd" Content="Force Attached End Tags" Margin="0,4"
-                          ToolTip="ON = force Attached. OFF = keep each tag's original Attached/Free setting."/>
+                          ToolTip="OFF (recommended): Free end pinned to original contact face — face will not switch. ON: Revit Attached (may re-pick face)."/>
                 <CheckBox x:Name="cbKeepSelection" Content="Keep Selection After Use" Margin="0,4"/>
                 <CheckBox x:Name="cbTurnSnapsOff" Content="Turn Snaps Off" Margin="0,4"/>
 
@@ -174,8 +174,10 @@
             </StackPanel>
 
             <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,8,0,0">
-                <TextBlock Text="Vertical Spacing" VerticalAlignment="Center" Width="110"/>
-                <TextBox x:Name="tbVertSpacing" Width="90" Text="60.96" VerticalAlignment="Center"/>
+                <TextBlock Text="Vertical Spacing" VerticalAlignment="Center" Width="110"
+                           ToolTip="Gap between stacked tag texts (mm). Freely adjustable; tool also enforces a minimum so texts never overlap."/>
+                <TextBox x:Name="tbVertSpacing" Width="90" Text="152.4" VerticalAlignment="Center"
+                         ToolTip="Center-to-center spacing in mm. Increase if tags still look tight."/>
                 <TextBlock Text=" mm" VerticalAlignment="Center" Margin="4,0,24,0"/>
                 <CheckBox x:Name="cbIntermittent" Content="Intermittent Alignment" VerticalAlignment="Center" Margin="0,0,12,0"
                           Checked="Intermittent_Changed" Unchecked="Intermittent_Changed"/>
