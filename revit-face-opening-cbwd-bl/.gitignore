@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+samples/last_sync_report.json
+.DS_Store
+*.bak

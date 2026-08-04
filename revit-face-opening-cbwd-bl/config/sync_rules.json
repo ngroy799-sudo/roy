@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "project": "Face Opening bottom Elevation to CBWD B.L.",
+  "target_revit": "2023",
+  "target_dynamo_python": "IronPython2",
+  "description": "將 Face Opening（Generic Model）底面 Elevation 寫入 Dimensions 參數 CBWD B.L.。支援 SelectedOnly / AllOpenings。",
+  "selection_mode": "AllOpenings",
+  "family_name_contains": "Face Opening",
+  "parameter_name": "CBWD B.L.",
+  "category": "OST_GenericModel",
+  "report": {
+    "default_output": "samples/last_sync_report.json"
+  },
+  "notes": {
+    "selection_modes": ["SelectedOnly", "AllOpenings"],
+    "SelectedOnly": "只用 Revit 目前選取的元素，再過濾成 Face Opening",
+    "AllOpenings": "掃描目前文件所有 Generic Models，過濾成 Face Opening 後全部同步",
+    "elevation": "使用 element BoundingBox.Min.Z（專案座標，Revit 內部長度單位）寫入參數"
+  }
+}
