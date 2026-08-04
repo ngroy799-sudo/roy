@@ -1,7 +1,7 @@
 {
-  "Uuid": "392171f4-230d-4289-a8db-0d3cd8512027",
+  "Uuid": "6875e410-8290-4887-90fa-15d99299ba73",
   "IsCustomNode": false,
-  "Description": "Face Opening bottom Elevation \u2192 CBWD B.L. Dynamo Player ready. SelectionMode: SelectedOnly | AllOpenings. Revit 2023.",
+  "Description": "Face Opening bottom Elevation -> CBWD B.L. SET ProjectRoot to your download folder. SelectionMode: SelectedOnly | AllOpenings. Revit 2023.",
   "Name": "FaceOpening_CBWD_BL_Sync_Player",
   "ElementResolver": {
     "ResolutionMap": {}
@@ -18,7 +18,7 @@
         {
           "Id": "o-root",
           "Name": "",
-          "Description": "Project root folder containing python/ and config/",
+          "Description": "FULL path to revit-face-opening-cbwd-bl (must contain python/ and config/). Example: C:\\Users\\You\\Downloads\\revit-face-opening-cbwd-bl",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -26,8 +26,8 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "Project root folder containing python/ and config/",
-      "InputValue": "F:\\For Cursor\\revit-face-opening-cbwd-bl"
+      "Description": "FULL path to revit-face-opening-cbwd-bl (must contain python/ and config/). Example: C:\\Users\\You\\Downloads\\revit-face-opening-cbwd-bl",
+      "InputValue": "PASTE_YOUR_PATH_HERE"
     },
     {
       "ConcreteType": "CoreNodeModels.Input.String",
@@ -38,7 +38,7 @@
         {
           "Id": "o-mode",
           "Name": "",
-          "Description": "SelectedOnly = use current selection; AllOpenings = all Face Openings in document",
+          "Description": "SelectedOnly = current Revit selection; AllOpenings = all Face Openings in document",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -46,8 +46,8 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "SelectedOnly = use current selection; AllOpenings = all Face Openings in document",
-      "InputValue": "SelectedOnly"
+      "Description": "SelectedOnly = current Revit selection; AllOpenings = all Face Openings in document",
+      "InputValue": "AllOpenings"
     },
     {
       "ConcreteType": "CoreNodeModels.Input.String",
@@ -58,7 +58,7 @@
         {
           "Id": "o-family",
           "Name": "",
-          "Description": "Family/Type name keyword filter (default Face Opening)",
+          "Description": "Family/Type name keyword",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -66,7 +66,7 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "Family/Type name keyword filter (default Face Opening)",
+      "Description": "Family/Type name keyword",
       "InputValue": "Face Opening"
     },
     {
@@ -78,7 +78,7 @@
         {
           "Id": "o-param",
           "Name": "",
-          "Description": "Target length parameter under Dimensions",
+          "Description": "Target Dimensions parameter",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -86,7 +86,7 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "Target length parameter under Dimensions",
+      "Description": "Target Dimensions parameter",
       "InputValue": "CBWD B.L."
     },
     {
@@ -173,9 +173,38 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "Loads python/sync_cbwd_bl.py from ProjectRoot and runs sync",
+      "Description": "Loads python/sync_cbwd_bl.py via exec (MEP-style). Always returns 6 outputs.",
       "VariableInputPorts": true,
-      "Script": "import sys, os\ndef _s(v):\n    if v is None:\n        return ''\n    try:\n        return v.ToString() if hasattr(v, 'ToString') else str(v)\n    except:\n        return str(v)\nroot = _s(IN[0]).strip().strip('\"')\nif not root:\n    OUT = ['ProjectRoot empty', '', 0, 0, 'Set ProjectRoot', 'ERROR']\nelse:\n    py = os.path.join(root, 'python')\n    if py not in sys.path:\n        sys.path.insert(0, py)\n    try:\n        import sync_cbwd_bl\n        try:\n            reload(sync_cbwd_bl)\n        except Exception:\n            try:\n                import importlib\n                importlib.reload(sync_cbwd_bl)\n            except Exception:\n                pass\n        OUT = sync_cbwd_bl.run(IN)\n    except Exception as ex:\n        OUT = ['Loader failed: ' + str(ex), '', 0, 0, str(ex), 'ERROR']\n"
+      "Script": "import sys, os\ndef _s(v):\n    if v is None:\n        return ''\n    try:\n        return v.ToString() if hasattr(v, 'ToString') else str(v)\n    except:\n        return str(v)\n\nOUT = ['init', '', 0, 0, 'init', 'ERROR']\ntry:\n    root = _s(IN[0] if len(IN) > 0 else '').strip().strip('\"').strip(\"'\")\n    if (not root) or root.upper() in ('PASTE_YOUR_PATH_HERE', 'YOUR_PATH', 'TODO'):\n        OUT = [\n            'ProjectRoot not set',\n            '',\n            0,\n            0,\n            'Paste the full path of revit-face-opening-cbwd-bl (folder that contains python and config)',\n            'ERROR'\n        ]\n    else:\n        py = os.path.join(root, 'python')\n        script = os.path.join(py, 'sync_cbwd_bl.py')\n        if not os.path.isdir(py) or not os.path.isfile(script):\n            OUT = [\n                'ProjectRoot invalid: ' + root,\n                '',\n                0,\n                0,\n                'Need folder containing python/sync_cbwd_bl.py and config/sync_rules.json. Current python path: ' + py,\n                'ERROR'\n            ]\n        else:\n            if py not in sys.path:\n                sys.path.insert(0, py)\n            ns = {'IN': IN, 'OUT': None}\n            f = open(script, 'r')\n            code = f.read()\n            f.close()\n            exec(code, ns)\n            out = ns.get('OUT')\n            if out is None:\n                # prefer run() if module-style\n                run = ns.get('run')\n                if callable(run):\n                    out = run(IN)\n            if out is None or (not isinstance(out, list)) or len(out) < 6:\n                OUT = ['Bad OUT from sync_cbwd_bl', '', 0, 0, 'Script did not return 6 outputs', 'ERROR']\n            else:\n                OUT = list(out)[:6]\nexcept Exception as ex:\n    try:\n        import traceback\n        tb = traceback.format_exc()\n    except:\n        tb = str(ex)\n    OUT = ['Loader exception: ' + str(ex), '', 0, 0, tb, 'ERROR']\n"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-raw",
+      "Inputs": [
+        {
+          "Id": "wi-raw",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "wo-raw",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Full OUT list for diagnosis"
     },
     {
       "ConcreteType": "CoreNodeModels.GetItemAtIndex",
@@ -183,7 +212,7 @@
       "NodeType": "FunctionNode",
       "Inputs": [
         {
-          "Id": "get-0i0",
+          "Id": "g0i0",
           "Name": "list",
           "Description": "",
           "UsingDefaultValue": false,
@@ -192,7 +221,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "get-0i1",
+          "Id": "g0i1",
           "Name": "index",
           "Description": "",
           "UsingDefaultValue": true,
@@ -204,7 +233,7 @@
       ],
       "Outputs": [
         {
-          "Id": "get-0o",
+          "Id": "g0o",
           "Name": "item",
           "Description": "",
           "UsingDefaultValue": false,
@@ -222,7 +251,7 @@
       "Id": "watch-summary",
       "Inputs": [
         {
-          "Id": "watch-summaryi",
+          "Id": "wi0",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -233,7 +262,7 @@
       ],
       "Outputs": [
         {
-          "Id": "watch-summaryo",
+          "Id": "wo0",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -243,7 +272,7 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "Summary"
+      "Description": "Summary output for Player"
     },
     {
       "ConcreteType": "CoreNodeModels.GetItemAtIndex",
@@ -251,7 +280,7 @@
       "NodeType": "FunctionNode",
       "Inputs": [
         {
-          "Id": "get-1i0",
+          "Id": "g1i0",
           "Name": "list",
           "Description": "",
           "UsingDefaultValue": false,
@@ -260,7 +289,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "get-1i1",
+          "Id": "g1i1",
           "Name": "index",
           "Description": "",
           "UsingDefaultValue": true,
@@ -272,7 +301,7 @@
       ],
       "Outputs": [
         {
-          "Id": "get-1o",
+          "Id": "g1o",
           "Name": "item",
           "Description": "",
           "UsingDefaultValue": false,
@@ -290,7 +319,7 @@
       "Id": "watch-report",
       "Inputs": [
         {
-          "Id": "watch-reporti",
+          "Id": "wi1",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -301,7 +330,7 @@
       ],
       "Outputs": [
         {
-          "Id": "watch-reporto",
+          "Id": "wo1",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -311,7 +340,7 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "ReportPathOut"
+      "Description": "ReportPathOut output for Player"
     },
     {
       "ConcreteType": "CoreNodeModels.GetItemAtIndex",
@@ -319,7 +348,7 @@
       "NodeType": "FunctionNode",
       "Inputs": [
         {
-          "Id": "get-2i0",
+          "Id": "g2i0",
           "Name": "list",
           "Description": "",
           "UsingDefaultValue": false,
@@ -328,7 +357,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "get-2i1",
+          "Id": "g2i1",
           "Name": "index",
           "Description": "",
           "UsingDefaultValue": true,
@@ -340,7 +369,7 @@
       ],
       "Outputs": [
         {
-          "Id": "get-2o",
+          "Id": "g2o",
           "Name": "item",
           "Description": "",
           "UsingDefaultValue": false,
@@ -358,7 +387,7 @@
       "Id": "watch-success",
       "Inputs": [
         {
-          "Id": "watch-successi",
+          "Id": "wi2",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -369,7 +398,7 @@
       ],
       "Outputs": [
         {
-          "Id": "watch-successo",
+          "Id": "wo2",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -379,7 +408,7 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "SuccessCount"
+      "Description": "SuccessCount output for Player"
     },
     {
       "ConcreteType": "CoreNodeModels.GetItemAtIndex",
@@ -387,7 +416,7 @@
       "NodeType": "FunctionNode",
       "Inputs": [
         {
-          "Id": "get-3i0",
+          "Id": "g3i0",
           "Name": "list",
           "Description": "",
           "UsingDefaultValue": false,
@@ -396,7 +425,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "get-3i1",
+          "Id": "g3i1",
           "Name": "index",
           "Description": "",
           "UsingDefaultValue": true,
@@ -408,7 +437,7 @@
       ],
       "Outputs": [
         {
-          "Id": "get-3o",
+          "Id": "g3o",
           "Name": "item",
           "Description": "",
           "UsingDefaultValue": false,
@@ -426,7 +455,7 @@
       "Id": "watch-skipped",
       "Inputs": [
         {
-          "Id": "watch-skippedi",
+          "Id": "wi3",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -437,7 +466,7 @@
       ],
       "Outputs": [
         {
-          "Id": "watch-skippedo",
+          "Id": "wo3",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -447,7 +476,7 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "SkippedCount"
+      "Description": "SkippedCount output for Player"
     },
     {
       "ConcreteType": "CoreNodeModels.GetItemAtIndex",
@@ -455,7 +484,7 @@
       "NodeType": "FunctionNode",
       "Inputs": [
         {
-          "Id": "get-4i0",
+          "Id": "g4i0",
           "Name": "list",
           "Description": "",
           "UsingDefaultValue": false,
@@ -464,7 +493,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "get-4i1",
+          "Id": "g4i1",
           "Name": "index",
           "Description": "",
           "UsingDefaultValue": true,
@@ -476,7 +505,7 @@
       ],
       "Outputs": [
         {
-          "Id": "get-4o",
+          "Id": "g4o",
           "Name": "item",
           "Description": "",
           "UsingDefaultValue": false,
@@ -494,7 +523,7 @@
       "Id": "watch-warn",
       "Inputs": [
         {
-          "Id": "watch-warni",
+          "Id": "wi4",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -505,7 +534,7 @@
       ],
       "Outputs": [
         {
-          "Id": "watch-warno",
+          "Id": "wo4",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -515,7 +544,7 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "Warnings"
+      "Description": "Warnings output for Player"
     },
     {
       "ConcreteType": "CoreNodeModels.GetItemAtIndex",
@@ -523,7 +552,7 @@
       "NodeType": "FunctionNode",
       "Inputs": [
         {
-          "Id": "get-5i0",
+          "Id": "g5i0",
           "Name": "list",
           "Description": "",
           "UsingDefaultValue": false,
@@ -532,7 +561,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "get-5i1",
+          "Id": "g5i1",
           "Name": "index",
           "Description": "",
           "UsingDefaultValue": true,
@@ -544,7 +573,7 @@
       ],
       "Outputs": [
         {
-          "Id": "get-5o",
+          "Id": "g5o",
           "Name": "item",
           "Description": "",
           "UsingDefaultValue": false,
@@ -562,7 +591,7 @@
       "Id": "watch-status",
       "Inputs": [
         {
-          "Id": "watch-statusi",
+          "Id": "wi5",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -573,7 +602,7 @@
       ],
       "Outputs": [
         {
-          "Id": "watch-statuso",
+          "Id": "wo5",
           "Name": "",
           "Description": "",
           "UsingDefaultValue": false,
@@ -583,7 +612,7 @@
         }
       ],
       "Replication": "Disabled",
-      "Description": "Status"
+      "Description": "Status output for Player"
     }
   ],
   "Connectors": [
@@ -614,62 +643,67 @@
     },
     {
       "Start": "po0",
-      "End": "get-0i0",
+      "End": "wi-raw",
+      "Id": "c-raw"
+    },
+    {
+      "Start": "po0",
+      "End": "g0i0",
       "Id": "c-po-0"
     },
     {
-      "Start": "get-0o",
-      "End": "watch-summaryi",
+      "Start": "g0o",
+      "End": "wi0",
       "Id": "c-w-0"
     },
     {
       "Start": "po0",
-      "End": "get-1i0",
+      "End": "g1i0",
       "Id": "c-po-1"
     },
     {
-      "Start": "get-1o",
-      "End": "watch-reporti",
+      "Start": "g1o",
+      "End": "wi1",
       "Id": "c-w-1"
     },
     {
       "Start": "po0",
-      "End": "get-2i0",
+      "End": "g2i0",
       "Id": "c-po-2"
     },
     {
-      "Start": "get-2o",
-      "End": "watch-successi",
+      "Start": "g2o",
+      "End": "wi2",
       "Id": "c-w-2"
     },
     {
       "Start": "po0",
-      "End": "get-3i0",
+      "End": "g3i0",
       "Id": "c-po-3"
     },
     {
-      "Start": "get-3o",
-      "End": "watch-skippedi",
+      "Start": "g3o",
+      "End": "wi3",
       "Id": "c-w-3"
     },
     {
       "Start": "po0",
-      "End": "get-4i0",
+      "End": "g4i0",
       "Id": "c-po-4"
     },
     {
-      "Start": "get-4o",
-      "End": "watch-warni",
+      "Start": "g4o",
+      "End": "wi4",
       "Id": "c-w-4"
     },
     {
       "Start": "po0",
-      "End": "get-5i0",
+      "End": "g5i0",
       "Id": "c-po-5"
     },
     {
-      "Start": "get-5o",
-      "End": "watch-statusi",
+      "Start": "g5o",
+      "End": "wi5",
       "Id": "c-w-5"
     }
   ],
@@ -741,6 +775,16 @@
         "Y": 120
       },
       {
+        "Id": "watch-raw",
+        "Name": "ResultList",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 980,
+        "Y": 20
+      },
+      {
         "Id": "get-0",
         "Name": "GetItemAtIndex",
         "IsSetAsInput": false,
@@ -748,7 +792,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 720,
-        "Y": 80
+        "Y": 120
       },
       {
         "Id": "watch-summary",
@@ -758,7 +802,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 980,
-        "Y": 80
+        "Y": 120
       },
       {
         "Id": "get-1",
@@ -768,7 +812,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 720,
-        "Y": 170
+        "Y": 205
       },
       {
         "Id": "watch-report",
@@ -778,7 +822,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 980,
-        "Y": 170
+        "Y": 205
       },
       {
         "Id": "get-2",
@@ -788,7 +832,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 720,
-        "Y": 260
+        "Y": 290
       },
       {
         "Id": "watch-success",
@@ -798,7 +842,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 980,
-        "Y": 260
+        "Y": 290
       },
       {
         "Id": "get-3",
@@ -808,7 +852,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 720,
-        "Y": 350
+        "Y": 375
       },
       {
         "Id": "watch-skipped",
@@ -818,7 +862,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 980,
-        "Y": 350
+        "Y": 375
       },
       {
         "Id": "get-4",
@@ -828,7 +872,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 720,
-        "Y": 440
+        "Y": 460
       },
       {
         "Id": "watch-warn",
@@ -838,7 +882,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 980,
-        "Y": 440
+        "Y": 460
       },
       {
         "Id": "get-5",
@@ -848,7 +892,7 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 720,
-        "Y": 530
+        "Y": 545
       },
       {
         "Id": "watch-status",
@@ -858,23 +902,23 @@
         "Excluded": false,
         "ShowGeometry": true,
         "X": 980,
-        "Y": 530
+        "Y": 545
       }
     ],
     "Annotations": [
       {
-        "Id": "a45c34af-f1b2-4127-992f-0740a077f473",
-        "Title": "SelectionMode",
-        "Description": "SelectedOnly = pick Face Openings in Revit first, then Play. AllOpenings = sync every Face Opening in the document.",
+        "Id": "8c1a02f8-030b-4de5-a1a0-d4fd348b3a3c",
+        "Title": "1) Set ProjectRoot",
+        "Description": "Must be the folder that contains python/ and config/. Not the dynamo/ folder. No F: drive needed.",
         "Left": 40.0,
-        "Top": 480.0,
-        "Width": 360.0,
-        "Height": 100.0,
+        "Top": 520.0,
+        "Width": 380.0,
+        "Height": 90.0,
         "FontSize": 14.0,
-        "InitialTop": 480.0,
-        "InitialHeight": 100.0,
-        "Text": "SelectedOnly | AllOpenings",
-        "Nodes": []
+        "InitialTop": 520.0,
+        "InitialHeight": 90.0,
+        "TextblockHeight": 40.0,
+        "Background": "#FFFFC200"
       }
     ],
     "X": 0.0,

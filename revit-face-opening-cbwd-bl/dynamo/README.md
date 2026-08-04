@@ -8,8 +8,8 @@
 
 | Name | Default | Notes |
 |------|---------|-------|
-| ProjectRoot | `F:\For Cursor\revit-face-opening-cbwd-bl` | Folder with `python/` + `config/` |
-| SelectionMode | `SelectedOnly` | or `AllOpenings` |
+| ProjectRoot | `PASTE_YOUR_PATH_HERE` | **Required.** Full path to folder with `python/` + `config/` (not `dynamo/`) |
+| SelectionMode | `AllOpenings` | or `SelectedOnly` |
 | FamilyNameContains | `Face Opening` | Family/Type keyword |
 | ParameterName | `CBWD B.L.` | Target Dimensions parameter |
 | ReportPath | `(auto)` | Writes `samples/last_sync_report.json` |
