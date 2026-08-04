@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-04T00:00:00Z",
+  "project": "Face Opening bottom Elevation to CBWD B.L.",
+  "selection_mode": "SelectedOnly",
+  "family_name_contains": "Face Opening",
+  "parameter_name": "CBWD B.L.",
+  "success_count": 2,
+  "skipped_count": 1,
+  "error_count": 0,
+  "successes": [
+    {
+      "element_id": 123456,
+      "family": "CBWD Face Opening",
+      "type": "Type A",
+      "bottom_elevation_internal": 32.8083989501,
+      "parameter": "CBWD B.L."
+    },
+    {
+      "element_id": 123457,
+      "family": "CBWD Face Opening",
+      "type": "Type A",
+      "bottom_elevation_internal": 16.4041994751,
+      "parameter": "CBWD B.L."
+    }
+  ],
+  "skipped": [
+    {
+      "element_id": 111111,
+      "reason": "not_face_opening",
+      "family": "Generic Model Sample",
+      "type": "Default"
+    }
+  ],
+  "errors": []
+}

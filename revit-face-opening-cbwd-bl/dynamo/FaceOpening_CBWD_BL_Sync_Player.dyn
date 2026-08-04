@@ -1,0 +1,884 @@
+{
+  "Uuid": "392171f4-230d-4289-a8db-0d3cd8512027",
+  "IsCustomNode": false,
+  "Description": "Face Opening bottom Elevation \u2192 CBWD B.L. Dynamo Player ready. SelectionMode: SelectedOnly | AllOpenings. Revit 2023.",
+  "Name": "FaceOpening_CBWD_BL_Sync_Player",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-project-root",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "o-root",
+          "Name": "",
+          "Description": "Project root folder containing python/ and config/",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Project root folder containing python/ and config/",
+      "InputValue": "F:\\For Cursor\\revit-face-opening-cbwd-bl"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-selection-mode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "o-mode",
+          "Name": "",
+          "Description": "SelectedOnly = use current selection; AllOpenings = all Face Openings in document",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "SelectedOnly = use current selection; AllOpenings = all Face Openings in document",
+      "InputValue": "SelectedOnly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-family",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "o-family",
+          "Name": "",
+          "Description": "Family/Type name keyword filter (default Face Opening)",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Family/Type name keyword filter (default Face Opening)",
+      "InputValue": "Face Opening"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-param",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "o-param",
+          "Name": "",
+          "Description": "Target length parameter under Dimensions",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Target length parameter under Dimensions",
+      "InputValue": "CBWD B.L."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.String",
+      "NodeType": "ExtensionNode",
+      "Id": "in-report",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "o-report",
+          "Name": "",
+          "Description": "JSON report path or (auto)",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "JSON report path or (auto)",
+      "InputValue": "(auto)"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode",
+      "NodeType": "PythonScriptNode",
+      "Engine": "IronPython2",
+      "Id": "py-player-loader",
+      "Inputs": [
+        {
+          "Id": "pi0",
+          "Name": "IN[0]",
+          "Description": "ProjectRoot",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "pi1",
+          "Name": "IN[1]",
+          "Description": "SelectionMode",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "pi2",
+          "Name": "IN[2]",
+          "Description": "FamilyNameContains",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "pi3",
+          "Name": "IN[3]",
+          "Description": "ParameterName",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "pi4",
+          "Name": "IN[4]",
+          "Description": "ReportPath",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "po0",
+          "Name": "OUT",
+          "Description": "Player results list",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Loads python/sync_cbwd_bl.py from ProjectRoot and runs sync",
+      "VariableInputPorts": true,
+      "Script": "import sys, os\ndef _s(v):\n    if v is None:\n        return ''\n    try:\n        return v.ToString() if hasattr(v, 'ToString') else str(v)\n    except:\n        return str(v)\nroot = _s(IN[0]).strip().strip('\"')\nif not root:\n    OUT = ['ProjectRoot empty', '', 0, 0, 'Set ProjectRoot', 'ERROR']\nelse:\n    py = os.path.join(root, 'python')\n    if py not in sys.path:\n        sys.path.insert(0, py)\n    try:\n        import sync_cbwd_bl\n        try:\n            reload(sync_cbwd_bl)\n        except Exception:\n            try:\n                import importlib\n                importlib.reload(sync_cbwd_bl)\n            except Exception:\n                pass\n        OUT = sync_cbwd_bl.run(IN)\n    except Exception as ex:\n        OUT = ['Loader failed: ' + str(ex), '', 0, 0, str(ex), 'ERROR']\n"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-0",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "get-0i0",
+          "Name": "list",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "get-0i1",
+          "Name": "index",
+          "Description": "",
+          "UsingDefaultValue": true,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false,
+          "DefaultValue": 0
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "get-0o",
+          "Name": "item",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-summary",
+      "Inputs": [
+        {
+          "Id": "watch-summaryi",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-summaryo",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Summary"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-1",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "get-1i0",
+          "Name": "list",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "get-1i1",
+          "Name": "index",
+          "Description": "",
+          "UsingDefaultValue": true,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false,
+          "DefaultValue": 1
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "get-1o",
+          "Name": "item",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-report",
+      "Inputs": [
+        {
+          "Id": "watch-reporti",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-reporto",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "ReportPathOut"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-2",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "get-2i0",
+          "Name": "list",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "get-2i1",
+          "Name": "index",
+          "Description": "",
+          "UsingDefaultValue": true,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false,
+          "DefaultValue": 2
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "get-2o",
+          "Name": "item",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-success",
+      "Inputs": [
+        {
+          "Id": "watch-successi",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-successo",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "SuccessCount"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-3",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "get-3i0",
+          "Name": "list",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "get-3i1",
+          "Name": "index",
+          "Description": "",
+          "UsingDefaultValue": true,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false,
+          "DefaultValue": 3
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "get-3o",
+          "Name": "item",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-skipped",
+      "Inputs": [
+        {
+          "Id": "watch-skippedi",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-skippedo",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "SkippedCount"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-4",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "get-4i0",
+          "Name": "list",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "get-4i1",
+          "Name": "index",
+          "Description": "",
+          "UsingDefaultValue": true,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false,
+          "DefaultValue": 4
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "get-4o",
+          "Name": "item",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-warn",
+      "Inputs": [
+        {
+          "Id": "watch-warni",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-warno",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Warnings"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.GetItemAtIndex",
+      "Id": "get-5",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "get-5i0",
+          "Name": "list",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "get-5i1",
+          "Name": "index",
+          "Description": "",
+          "UsingDefaultValue": true,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false,
+          "DefaultValue": 5
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "get-5o",
+          "Name": "item",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "List.GetItemAtIndex@var[]..[],int",
+      "Replication": "Auto"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch",
+      "NodeType": "ExtensionNode",
+      "Id": "watch-status",
+      "Inputs": [
+        {
+          "Id": "watch-statusi",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "watch-statuso",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Status"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "o-root",
+      "End": "pi0",
+      "Id": "c-in-0"
+    },
+    {
+      "Start": "o-mode",
+      "End": "pi1",
+      "Id": "c-in-1"
+    },
+    {
+      "Start": "o-family",
+      "End": "pi2",
+      "Id": "c-in-2"
+    },
+    {
+      "Start": "o-param",
+      "End": "pi3",
+      "Id": "c-in-3"
+    },
+    {
+      "Start": "o-report",
+      "End": "pi4",
+      "Id": "c-in-4"
+    },
+    {
+      "Start": "po0",
+      "End": "get-0i0",
+      "Id": "c-po-0"
+    },
+    {
+      "Start": "get-0o",
+      "End": "watch-summaryi",
+      "Id": "c-w-0"
+    },
+    {
+      "Start": "po0",
+      "End": "get-1i0",
+      "Id": "c-po-1"
+    },
+    {
+      "Start": "get-1o",
+      "End": "watch-reporti",
+      "Id": "c-w-1"
+    },
+    {
+      "Start": "po0",
+      "End": "get-2i0",
+      "Id": "c-po-2"
+    },
+    {
+      "Start": "get-2o",
+      "End": "watch-successi",
+      "Id": "c-w-2"
+    },
+    {
+      "Start": "po0",
+      "End": "get-3i0",
+      "Id": "c-po-3"
+    },
+    {
+      "Start": "get-3o",
+      "End": "watch-skippedi",
+      "Id": "c-w-3"
+    },
+    {
+      "Start": "po0",
+      "End": "get-4i0",
+      "Id": "c-po-4"
+    },
+    {
+      "Start": "get-4o",
+      "End": "watch-warni",
+      "Id": "c-w-4"
+    },
+    {
+      "Start": "po0",
+      "End": "get-5i0",
+      "Id": "c-po-5"
+    },
+    {
+      "Start": "get-5o",
+      "End": "watch-statusi",
+      "Id": "c-w-5"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Thumbnail": "",
+  "Bindings": [],
+  "View": {
+    "CamlData": null,
+    "NodeViews": [
+      {
+        "Id": "in-project-root",
+        "Name": "ProjectRoot",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 50,
+        "Y": 50
+      },
+      {
+        "Id": "in-selection-mode",
+        "Name": "SelectionMode",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 50,
+        "Y": 140
+      },
+      {
+        "Id": "in-family",
+        "Name": "FamilyNameContains",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 50,
+        "Y": 230
+      },
+      {
+        "Id": "in-param",
+        "Name": "ParameterName",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 50,
+        "Y": 320
+      },
+      {
+        "Id": "in-report",
+        "Name": "ReportPath",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 50,
+        "Y": 410
+      },
+      {
+        "Id": "py-player-loader",
+        "Name": "Run Sync CBWD B.L.",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 420,
+        "Y": 120
+      },
+      {
+        "Id": "get-0",
+        "Name": "GetItemAtIndex",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 720,
+        "Y": 80
+      },
+      {
+        "Id": "watch-summary",
+        "Name": "Summary",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 980,
+        "Y": 80
+      },
+      {
+        "Id": "get-1",
+        "Name": "GetItemAtIndex",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 720,
+        "Y": 170
+      },
+      {
+        "Id": "watch-report",
+        "Name": "ReportPathOut",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 980,
+        "Y": 170
+      },
+      {
+        "Id": "get-2",
+        "Name": "GetItemAtIndex",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 720,
+        "Y": 260
+      },
+      {
+        "Id": "watch-success",
+        "Name": "SuccessCount",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 980,
+        "Y": 260
+      },
+      {
+        "Id": "get-3",
+        "Name": "GetItemAtIndex",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 720,
+        "Y": 350
+      },
+      {
+        "Id": "watch-skipped",
+        "Name": "SkippedCount",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 980,
+        "Y": 350
+      },
+      {
+        "Id": "get-4",
+        "Name": "GetItemAtIndex",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 720,
+        "Y": 440
+      },
+      {
+        "Id": "watch-warn",
+        "Name": "Warnings",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 980,
+        "Y": 440
+      },
+      {
+        "Id": "get-5",
+        "Name": "GetItemAtIndex",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 720,
+        "Y": 530
+      },
+      {
+        "Id": "watch-status",
+        "Name": "Status",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": true,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 980,
+        "Y": 530
+      }
+    ],
+    "Annotations": [
+      {
+        "Id": "a45c34af-f1b2-4127-992f-0740a077f473",
+        "Title": "SelectionMode",
+        "Description": "SelectedOnly = pick Face Openings in Revit first, then Play. AllOpenings = sync every Face Opening in the document.",
+        "Left": 40.0,
+        "Top": 480.0,
+        "Width": 360.0,
+        "Height": 100.0,
+        "FontSize": 14.0,
+        "InitialTop": 480.0,
+        "InitialHeight": 100.0,
+        "Text": "SelectedOnly | AllOpenings",
+        "Nodes": []
+      }
+    ],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}
