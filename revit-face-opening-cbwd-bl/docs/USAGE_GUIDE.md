@@ -21,18 +21,35 @@
 1. Revit：**Manage → Dynamo Player**
 2. 資料夾揀：`...\revit-face-opening-cbwd-bl\dynamo`（呢步一定要）
 3. 開 **FaceOpening_CBWD_BL_Sync_Player**
-4. Inputs：
+4. Inputs 應該見到：
+
+   - `1. ProjectRoot`
+   - `2. SelectionMode`
+   - `3. FamilyNameContains`
+   - `4. ParameterName`
+   - `5. ReportPath`
+
+5. 填：
 
 | Input | 值 |
 |-------|-----|
-| **ProjectRoot** | 貼上一步同一個 `...\dynamo` 路徑（或上一層專案路徑） |
-| SelectionMode | 先試 `AllOpenings`；只改選取項就用 `SelectedOnly` |
-| FamilyNameContains | `Face Opening` |
-| ParameterName | `CBWD B.L.` |
-| ReportPath | `(auto)` |
+| **1. ProjectRoot** | 貼上一步同一個 `...\dynamo` 路徑（或上一層專案路徑） |
+| **2. SelectionMode** | 先試 `AllOpenings`；只改選取項就用 `SelectedOnly` |
+| 3. FamilyNameContains | `Face Opening` |
+| 4. ParameterName | `CBWD B.L.` |
+| 5. ReportPath | `(auto)` |
 
-5. `SelectedOnly` 先要在 Revit 選好 Opening，再 **Run**
-6. 睇 `Status` / `SuccessCount` / `Warnings` / `ResultList`
+6. `SelectedOnly` 先要在 Revit 選好 Opening，再 **Run**
+7. 睇 `Status` / `SuccessCount` / `Warnings` / `ResultList`
+
+### 如果 Inputs 仍然係空
+
+1. 用 **Dynamo**（唔係 Player）開同一個 `.dyn`
+2. 對每個 String 節點（ProjectRoot 等）右鍵勾 **Is Input**
+3. 對 Watch 輸出右鍵勾 **Is Output**
+4. **Save**
+5. 再返 Dynamo Player 重新載入
+
 
 ## 模式說明
 
