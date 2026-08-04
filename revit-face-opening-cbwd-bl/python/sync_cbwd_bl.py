@@ -81,10 +81,74 @@ def normalize_selection_mode(value, default="SelectedOnly"):
     return default
 
 
+def _is_project_root(path):
+    """True if folder contains python/sync_cbwd_bl.py and config/sync_rules.json."""
+    if not path or not os.path.isdir(path):
+        return False
+    script = os.path.join(path, "python", "sync_cbwd_bl.py")
+    config = os.path.join(path, "config", "sync_rules.json")
+    return os.path.isfile(script) and os.path.isfile(config)
+
+
+def resolve_project_root(raw_path):
+    """
+    Resolve ProjectRoot for Dynamo Player UX.
+
+    Accepts:
+      - project root (has python/ + config/)
+      - the dynamo/ subfolder (Player browse folder) → uses parent
+      - path to the .dyn file → uses its project root
+
+    Returns (resolved_root_or_None, note_string).
+    """
+    path = _s(raw_path).strip().strip('"').strip("'")
+    if not path or path.lower() in (
+        "(auto)",
+        "auto",
+        "null",
+        "none",
+        "paste_your_path_here",
+        "your_path",
+        "todo",
+    ):
+        return None, "ProjectRoot empty — paste dynamo folder or project folder path"
+
+    # If user pasted a .dyn file path
+    if path.lower().endswith(".dyn") and os.path.isfile(path):
+        path = os.path.dirname(path)
+
+    if not os.path.isdir(path):
+        return None, "Path not found: " + path
+
+    candidates = [path]
+    # Player must point at dynamo/ to list scripts — allow that same path here
+    base = os.path.basename(os.path.normpath(path)).lower()
+    if base == "dynamo":
+        candidates.append(os.path.dirname(path))
+    # Also try parent once (zip nest / extra folder)
+    parent = os.path.dirname(os.path.normpath(path))
+    if parent and parent not in candidates:
+        candidates.append(parent)
+    # dynamo -> parent already; if path is project root we're done
+
+    for cand in candidates:
+        if _is_project_root(cand):
+            note = ""
+            if os.path.normpath(cand) != os.path.normpath(path):
+                note = "Resolved ProjectRoot from dynamo/Player folder → " + cand
+            return cand, note
+
+    return None, (
+        "Cannot find python/sync_cbwd_bl.py under: "
+        + path
+        + " | Paste either ...\\revit-face-opening-cbwd-bl or ...\\revit-face-opening-cbwd-bl\\dynamo"
+    )
+
+
 def run(inputs):
     warnings = []
     try:
-        project_root = _s(inputs[0] if len(inputs) > 0 else "").strip().strip('"')
+        project_root_in = _s(inputs[0] if len(inputs) > 0 else "").strip().strip('"')
         selection_mode_in = inputs[1] if len(inputs) > 1 else None
         family_override = _s(inputs[2] if len(inputs) > 2 else "").strip()
         parameter_override = _s(inputs[3] if len(inputs) > 3 else "").strip()
@@ -94,13 +158,17 @@ def run(inputs):
     except Exception as ex:
         return _out("Input parse failed: " + str(ex), "", 0, 0, str(ex), "ERROR")
 
+    project_root, resolve_note = resolve_project_root(project_root_in)
+    if resolve_note:
+        warnings.append(resolve_note)
     if not project_root:
         return _out(
-            "ProjectRoot is empty",
+            "ProjectRoot could not be resolved",
             "",
             0,
             0,
-            "Set ProjectRoot to folder with python/ and config/",
+            resolve_note
+            or "Set ProjectRoot to the dynamo folder (OK) or the project folder with python/ and config/",
             "ERROR",
         )
 
@@ -108,13 +176,6 @@ def run(inputs):
     config_path = os.path.join(project_root, "config", "sync_rules.json")
     if not report_path:
         report_path = os.path.join(project_root, "samples", "last_sync_report.json")
-
-    if not os.path.isdir(project_root):
-        return _out("ProjectRoot not found: " + project_root, "", 0, 0, "Bad ProjectRoot", "ERROR")
-    if not os.path.isdir(python_dir):
-        return _out("python/ missing under ProjectRoot", "", 0, 0, python_dir, "ERROR")
-    if not os.path.isfile(config_path):
-        return _out("Config not found", "", 0, 0, config_path, "ERROR")
 
     if python_dir not in sys.path:
         sys.path.insert(0, python_dir)

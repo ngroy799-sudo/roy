@@ -12,24 +12,23 @@ Revit 2023 Dynamo 工具：把 **Face Opening**（Generic Model）底面 Elevati
 
 ## 快速開始（Dynamo Player）
 
-1. 把本資料夾放到本機任意位置（唔需要 F 盤）
-2. Revit 2023 開啟專案模型
-3. **Manage → Dynamo Player** → 指向 `...\revit-face-opening-cbwd-bl\dynamo`
-4. 開 **FaceOpening_CBWD_BL_Sync_Player**
-5. 展開 **Inputs**，**一定要改 ProjectRoot** 成你本機完整路徑（資料夾內要有 `python` + `config`）
-6. 其他：
+**兩個路徑：**
+
+1. **Player 揀資料夾** → 一定要 `...\revit-face-opening-cbwd-bl\dynamo`（否則 Run 唔到）
+2. **Input ProjectRoot** → 貼**同一個** `dynamo` 路徑（或上一層專案資料夾；兩個都得）
+
+然後：
 
 | Input | 說明 |
 |-------|------|
-| ProjectRoot | 例如 `C:\Users\...\Downloads\revit-face-opening-cbwd-bl` |
-| SelectionMode | `SelectedOnly` 或 `AllOpenings`（建議先試 `AllOpenings`） |
+| ProjectRoot | `...\dynamo` 或 `...\revit-face-opening-cbwd-bl` |
+| SelectionMode | 建議先 `AllOpenings` |
 | FamilyNameContains | 預設 `Face Opening` |
 | ParameterName | 預設 `CBWD B.L.` |
 | ReportPath | `(auto)` |
 
-7. 若用 `SelectedOnly`：先在 Revit 選好 Face Opening，再按 **Run**
-8. 看 Outputs：`Status` / `SuccessCount` / `Warnings` / `ResultList`  
-   - 若全空 + warnings → ProjectRoot 仲未指對
+`SelectedOnly` 要先在 Revit 選好 Opening 再 Run。睇 `Status` / `ResultList`。
+
 
 詳見 [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md)。Agent 搜尋入口：[AGENT_INDEX.md](AGENT_INDEX.md)。
 

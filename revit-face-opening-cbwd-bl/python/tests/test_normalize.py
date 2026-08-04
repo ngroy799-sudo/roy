@@ -44,9 +44,26 @@ class NormalizeModeTests(unittest.TestCase):
         self.assertEqual(normalize_selection_mode("", "SelectedOnly"), "SelectedOnly")
 
 
+class ResolveRootTests(unittest.TestCase):
+    def test_dynamo_folder_resolves_to_parent(self):
+        from sync_cbwd_bl import resolve_project_root
+
+        project = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        dynamo = os.path.join(project, "dynamo")
+        root, note = resolve_project_root(dynamo)
+        self.assertEqual(os.path.normpath(root), os.path.normpath(project))
+        self.assertTrue(note == "" or "Resolved" in note or "dynamo" in note.lower() or root)
+
+    def test_project_folder_ok(self):
+        from sync_cbwd_bl import resolve_project_root
+
+        project = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        root, note = resolve_project_root(project)
+        self.assertEqual(os.path.normpath(root), os.path.normpath(project))
+
+
 class FaceOpeningNameTests(unittest.TestCase):
     def test_match(self):
-        # Import matcher without requiring Revit — patch REVIT flag path
         from lib import revit_utils
 
         el = FakeElement("CBWD Face Opening", "Type A")
