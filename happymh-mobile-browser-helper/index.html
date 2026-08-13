@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>手機模式開原站 · happymh helper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #0f1c24;
+      --bg1: #1a3340;
+      --ink: #e8f2f4;
+      --muted: #9bb6be;
+      --accent: #3ecf8e;
+      --accent-ink: #062016;
+      --line: rgba(232, 242, 244, 0.14);
+      --warn: #ffb454;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Sans TC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #2a5a4a 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #1e3a55 0%, transparent 50%),
+        linear-gradient(165deg, var(--bg0), var(--bg1));
+      line-height: 1.55;
+    }
+
+    main {
+      width: min(720px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 3.5rem 0 4rem;
+    }
+
+    .brand {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.35rem;
+    }
+
+    .lead {
+      color: var(--muted);
+      margin: 0 0 2rem;
+      max-width: 36em;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.85rem 1.2rem;
+      border-radius: 0.55rem;
+      text-decoration: none;
+      font-weight: 700;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    a.btn:hover { transform: translateY(-1px); }
+
+    a.btn-primary {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+
+    a.btn-ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    section {
+      margin-bottom: 2rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--line);
+    }
+
+    h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.15rem;
+      margin: 0 0 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    ol, ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      color: var(--muted);
+    }
+
+    li { margin: 0.4rem 0; }
+    li strong { color: var(--ink); font-weight: 600; }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      background: rgba(0, 0, 0, 0.28);
+      padding: 0.1em 0.35em;
+      border-radius: 0.3em;
+    }
+
+    .note {
+      color: var(--warn);
+      margin: 0.85rem 0 0;
+      font-size: 0.95rem;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="brand">happymh mobile helper</p>
+    <p class="lead">用你本機瀏覽器、手機模式直接開原站；廣告靠 uBlock Origin 攔截。本頁唔抓取、唔代理網站內容。</p>
+
+    <div class="cta-row">
+      <a class="btn btn-primary" id="open-site" href="https://m.happymh.com/manga/quanzhiduzheshijiao" target="_blank" rel="noopener noreferrer">開原站</a>
+      <a class="btn btn-ghost" href="https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm" target="_blank" rel="noopener noreferrer">安裝 uBlock Origin</a>
+    </div>
+
+    <section>
+      <h2>一、攔截廣告</h2>
+      <ol>
+        <li>安裝 <strong>uBlock Origin</strong>（Chrome / Edge 擴充功能）。</li>
+        <li>開原站後，右上角盾牌圖示確認已啟用。</li>
+        <li>仍有彈窗時，撳盾牌 → 暫時加強攔截／重新整理。</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>二、手機模式（最穩）</h2>
+      <ol>
+        <li>喺原站頁面按 <code>F12</code>。</li>
+        <li>按 <code>Ctrl+Shift+M</code>（Mac：<code>Cmd+Shift+M</code>）開裝置工具列。</li>
+        <li>頂部選 <strong>iPhone</strong>，或闊度設約 <code>390</code>。</li>
+        <li>重新整理頁面。</li>
+      </ol>
+      <p class="note">開發者工具手機模式比單改 User-Agent 更準，排版通常會正常。</p>
+    </section>
+
+    <section>
+      <h2>三、一鍵啟動腳本（推薦）</h2>
+      <ul>
+        <li>Windows：雙擊 <code>launch-chrome.bat</code> 或 <code>launch-edge.bat</code></li>
+        <li>macOS / Linux：執行 <code>./launch-chrome.sh</code></li>
+        <li>改預設網址：複製 <code>config.env.example</code> 做 <code>config.env</code>，改 <code>TARGET_URL</code></li>
+      </ul>
+    </section>
+
+    <footer>
+      專案資料夾：<code>happymh-mobile-browser-helper</code> · 只啟動瀏覽器開原站，唔鏡像內容。
+    </footer>
+  </main>
+  <script>
+    // Optional: allow ?url= override for the open button
+    const params = new URLSearchParams(location.search);
+    const custom = params.get("url");
+    if (custom) {
+      try {
+        const u = new URL(custom);
+        if (u.hostname.endsWith("happymh.com")) {
+          document.getElementById("open-site").href = u.toString();
+        }
+      } catch (_) { /* ignore bad url */ }
+    }
+  </script>
+</body>
+</html>
