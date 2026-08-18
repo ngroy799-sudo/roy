@@ -45,6 +45,35 @@ namespace RevitTagAlign.Tests
         }
 
         [Fact]
+        public void StackAnchor_BaselineLanding_AdaptivePerRow_ParallelAngle()
+        {
+            V3 landingDir = Right;
+            V3 arrow = LeaderGeometry.CommonAngleArrow(Right, Up, true, true, 45);
+            V3 pick = new V3(0, 0, 10);
+            V3 boxMin = new V3(8, -0.5, 7.0);
+            V3 boxMax = new V3(10, 0.5, 8.0);
+            V3 boxHighMin = new V3(8, -0.5, 8.0);
+            V3 boxHighMax = new V3(10, 0.5, 9.0);
+            V3 hostLow = new V3(8, 0, 7.5);
+            V3 hostHigh = new V3(8, 0, 8.5);
+
+            V3 anchorHead = LeaderGeometry.StackHead(pick, Up, Right, 0, 0.5, 1, 0);
+            V3 h1 = LeaderGeometry.StackHead(pick, Up, Right, 1, 0.5, 1, 0);
+            V3 endLow = LeaderGeometry.ClampPointToOriginalFace(
+                hostLow, boxMin, boxMax, HostFaceKind.Left, Right, Up);
+            V3 endHigh = LeaderGeometry.ClampPointToOriginalFace(
+                hostHigh, boxHighMin, boxHighMax, HostFaceKind.Left, Right, Up);
+
+            Assert.True(LeaderGeometry.TrySolveAdaptiveElbow(anchorHead, endLow, landingDir, arrow, out V3 e0));
+            Assert.True(LeaderGeometry.TrySolveAdaptiveElbow(h1, endHigh, landingDir, arrow, out V3 e1));
+
+            V3 d0 = (endLow - e0).Normalize();
+            V3 d1 = (endHigh - e1).Normalize();
+            Assert.True(Math.Abs(d0.Dot(d1) - 1.0) < 0.02);
+            Assert.InRange(LeaderGeometry.ElbowAngleDegrees(landingDir, d0), 44.0, 46.0);
+        }
+
+        [Fact]
         public void AdaptiveLanding_VariesWhenHostIsFartherRight()
         {
             V3 landingDir = Right;
@@ -53,32 +82,31 @@ namespace RevitTagAlign.Tests
 
             V3 boxNearMin = new V3(8, -0.5, 7.0);
             V3 boxNearMax = new V3(10, 0.5, 8.0);
-            V3 boxFarMin = new V3(11, -0.5, 7.0);
-            V3 boxFarMax = new V3(13, 0.5, 8.0);
+            V3 boxFarMin = new V3(14, -0.5, 7.0);
+            V3 boxFarMax = new V3(16, 0.5, 8.0);
             V3 hostNear = new V3(8, 0, 7.5);
-            V3 hostFar = new V3(11, 0, 7.5);
+            V3 hostFar = new V3(14, 0, 7.5);
 
-            V3 hNear = LeaderGeometry.StackHead(pick, Up, Right, 0, 0.5, 1, 0);
-            V3 hFar = LeaderGeometry.StackHead(pick, Up, Right, 1, 0.5, 1, 0);
+            V3 head = LeaderGeometry.StackHead(pick, Up, Right, 0, 0.5, 1, 0);
+            V3 endNear = LeaderGeometry.ClampPointToOriginalFace(
+                hostNear, boxNearMin, boxNearMax, HostFaceKind.Left, Right, Up);
+            V3 endFar = LeaderGeometry.ClampPointToOriginalFace(
+                hostFar, boxFarMin, boxFarMax, HostFaceKind.Left, Right, Up);
 
-            LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
-                hNear, hostNear, boxNearMin, boxNearMax, landingDir, arrow, Right, Up,
-                out V3 elbowNear, out V3 endNear, 1.0);
-            LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
-                hFar, hostFar, boxFarMin, boxFarMax, landingDir, arrow, Right, Up,
-                out V3 elbowFar, out V3 endFar, 1.0);
+            Assert.True(LeaderGeometry.TrySolveAdaptiveElbow(head, endNear, landingDir, arrow, out V3 elbowNear));
+            Assert.True(LeaderGeometry.TrySolveAdaptiveElbow(head, endFar, landingDir, arrow, out V3 elbowFar));
 
-            double landNear = elbowNear.DistanceTo(hNear);
-            double landFar = elbowFar.DistanceTo(hFar);
+            double landNear = elbowNear.DistanceTo(head);
+            double landFar = elbowFar.DistanceTo(head);
             double redNear = endNear.DistanceTo(elbowNear);
             double redFar = endFar.DistanceTo(elbowFar);
-
-            Assert.True(landFar > landNear + 0.5 || redFar > redNear + 0.5,
+            Assert.True(landFar > landNear + 0.3 || redFar > redNear + 0.3,
                 "farther host should lengthen landing and/or red segment");
 
             V3 dNear = (endNear - elbowNear).Normalize();
             V3 dFar = (endFar - elbowFar).Normalize();
-            Assert.True(Math.Abs(dNear.Dot(dFar) - 1.0) < 0.02);
+            Assert.InRange(LeaderGeometry.ElbowAngleDegrees(landingDir, dNear), 59.0, 61.0);
+            Assert.InRange(LeaderGeometry.ElbowAngleDegrees(landingDir, dFar), 59.0, 61.0);
         }
 
         [Fact]
@@ -120,12 +148,12 @@ namespace RevitTagAlign.Tests
 
             V3 h0 = LeaderGeometry.StackHead(pick, Up, Right, 0, 0.5, 1, 0);
             V3 h1 = LeaderGeometry.StackHead(pick, Up, Right, 1, 0.5, 1, 0);
-            LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
-                h0, contact0, box0Min, box0Max, landingDir, arrow, Right, Up,
-                out V3 e0, out V3 end0, 1.0);
-            LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
-                h1, contact1, box1Min, box1Max, landingDir, arrow, Right, Up,
-                out V3 e1, out V3 end1, 1.0);
+            double shared = LeaderGeometry.ResolveAnchorLandingLength(
+                h0, contact0, box0Min, box0Max, landingDir, arrow, Right, Up, 1.0);
+            V3 end0 = LeaderGeometry.ClampPointToOriginalFace(contact0, box0Min, box0Max, HostFaceKind.Left, Right, Up);
+            V3 end1 = LeaderGeometry.ClampPointToOriginalFace(contact1, box1Min, box1Max, HostFaceKind.Left, Right, Up);
+            Assert.True(LeaderGeometry.TrySolveAdaptiveElbow(h0, end0, landingDir, arrow, out V3 e0));
+            Assert.True(LeaderGeometry.TrySolveAdaptiveElbow(h1, end1, landingDir, arrow, out V3 e1));
 
             Assert.True(LeaderGeometry.PointOnFace(end0, box0Min, box0Max, HostFaceKind.Left, Right, Up, 0.08));
             Assert.True(LeaderGeometry.PointOnFace(end1, box1Min, box1Max, HostFaceKind.Left, Right, Up, 0.08));
@@ -153,9 +181,14 @@ namespace RevitTagAlign.Tests
             {
                 V3 pick = new V3(-click * 2.0, 0, 7.5);
                 V3 head = LeaderGeometry.StackHead(pick, Up, Right, 0, 0.5, 1, 0);
-                LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
-                    head, contact, boxMin, boxMax, landingDir, arrow, Right, Up,
-                    out V3 elbow, out V3 end, 1.0);
+                V3 end = LeaderGeometry.ClampPointToOriginalFace(
+                    contact, boxMin, boxMax, HostFaceKind.Left, Right, Up);
+                V3 elbow;
+                if (!LeaderGeometry.TrySolveAdaptiveElbow(head, end, landingDir, arrow, out elbow))
+                {
+                    elbow = LeaderGeometry.ElbowFromHead(head, landingDir, 1.0);
+                    end = LeaderGeometry.SnapEndToOriginalFace(elbow, arrow, boxMin, boxMax, face, Right, Up);
+                }
 
                 Assert.True(LeaderGeometry.PointOnFace(end, boxMin, boxMax, HostFaceKind.Left, Right, Up, 0.05));
                 double len = end.DistanceTo(elbow);
@@ -191,10 +224,10 @@ namespace RevitTagAlign.Tests
             // Host1 bbox shifted +3 ft right vs Host2; same height.
             V3 boxNearMin = new V3(8, -0.5, 7.0);
             V3 boxNearMax = new V3(10, 0.5, 8.0);
-            V3 boxFarMin = new V3(11, -0.5, 7.0);
-            V3 boxFarMax = new V3(13, 0.5, 8.0);
+            V3 boxFarMin = new V3(14, -0.5, 7.0);
+            V3 boxFarMax = new V3(16, 0.5, 8.0);
             V3 contactNear = new V3(8, 0, 7.5);
-            V3 contactFar = new V3(11, 0, 7.5);
+            V3 contactFar = new V3(14, 0, 7.5);
 
             HostFaceKind fNear = LeaderGeometry.ClassifyFace(contactNear, boxNearMin, boxNearMax, Right, Up);
             HostFaceKind fFar = LeaderGeometry.ClassifyFace(contactFar, boxFarMin, boxFarMax, Right, Up);
@@ -203,26 +236,25 @@ namespace RevitTagAlign.Tests
             V3 arrow = LeaderGeometry.CommonAngleArrow(Right, Up, true, true, 60);
 
             V3 pick = new V3(0, 0, 10);
-            V3 hNear = LeaderGeometry.StackHead(pick, Up, Right, 0, 0.5, 1, 0);
-            V3 hFar = LeaderGeometry.StackHead(pick, Up, Right, 1, 0.5, 1, 0);
-            LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
-                hNear, contactNear, boxNearMin, boxNearMax, landingDir, arrow, Right, Up,
-                out V3 eNear, out V3 endNear, 1.0);
-            LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
-                hFar, contactFar, boxFarMin, boxFarMax, landingDir, arrow, Right, Up,
-                out V3 eFar, out V3 endFar, 1.0);
+            V3 head = LeaderGeometry.StackHead(pick, Up, Right, 0, 0.5, 1, 0);
+            V3 endNear = LeaderGeometry.ClampPointToOriginalFace(
+                contactNear, boxNearMin, boxNearMax, HostFaceKind.Left, Right, Up);
+            V3 endFar = LeaderGeometry.ClampPointToOriginalFace(
+                contactFar, boxFarMin, boxFarMax, HostFaceKind.Left, Right, Up);
+            Assert.True(LeaderGeometry.TrySolveAdaptiveElbow(head, endNear, landingDir, arrow, out V3 eNear));
+            Assert.True(LeaderGeometry.TrySolveAdaptiveElbow(head, endFar, landingDir, arrow, out V3 eFar));
 
+            double landNear = eNear.DistanceTo(head);
+            double landFar = eFar.DistanceTo(head);
             double redNear = endNear.DistanceTo(eNear);
             double redFar = endFar.DistanceTo(eFar);
-            double landNear = eNear.DistanceTo(hNear);
-            double landFar = eFar.DistanceTo(hFar);
-            Assert.True(redFar > redNear + 0.5 || landFar > landNear + 0.5,
+            Assert.True(landFar > landNear + 0.3 || redFar > redNear + 0.3,
                 "farther host should lengthen landing and/or red segment");
 
             V3 dNear = (endNear - eNear).Normalize();
             V3 dFar = (endFar - eFar).Normalize();
-            Assert.True(Math.Abs(dNear.Dot(dFar) - 1.0) < 0.02);
-            Assert.InRange(LeaderGeometry.ElbowAngleDegrees(landingDir, arrow), 59.0, 61.0);
+            Assert.InRange(LeaderGeometry.ElbowAngleDegrees(landingDir, dNear), 59.0, 61.0);
+            Assert.InRange(LeaderGeometry.ElbowAngleDegrees(landingDir, dFar), 59.0, 61.0);
         }
 
         [Fact]

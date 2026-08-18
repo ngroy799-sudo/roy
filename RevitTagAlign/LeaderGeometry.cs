@@ -180,6 +180,51 @@ namespace RevitTagAlign
             return false;
         }
 
+        /// <summary>
+        /// Landing length for the whole stack from the anchor tag (row 0 at pick:
+        /// bottom for Upper corners, top for Lower). Other tags share this landing;
+        /// red segment length varies per host.
+        /// </summary>
+        public static double ResolveAnchorLandingLength(
+            V3 anchorHead,
+            V3 anchorHost,
+            V3 bbMin,
+            V3 bbMax,
+            V3 landingDir,
+            V3 arrow,
+            V3 right,
+            V3 up,
+            double fallbackLanding)
+        {
+            if (TryComputeAdaptiveCommonAngleLeader(
+                    anchorHead, anchorHost, bbMin, bbMax, landingDir, arrow, right, up,
+                    out V3 elbow, out _, fallbackLanding))
+            {
+                return Math.Max(0.05, anchorHead.DistanceTo(elbow));
+            }
+            return Math.Max(0.05, fallbackLanding);
+        }
+
+        /// <summary>
+        /// Common-angle stack leader: equal landing (from anchor), parallel red to host face.
+        /// </summary>
+        public static void ComputeStackCommonAngleLeader(
+            V3 head,
+            V3 bbMin,
+            V3 bbMax,
+            HostFaceKind face,
+            V3 landingDir,
+            V3 arrow,
+            V3 right,
+            V3 up,
+            double sharedLanding,
+            out V3 elbow,
+            out V3 end)
+        {
+            elbow = ElbowFromHead(head, landingDir, sharedLanding);
+            end = SnapEndToOriginalFace(elbow, arrow, bbMin, bbMax, face, right, up);
+        }
+
         /// <summary>Which of the four view-aligned bbox faces the contact point sits on.</summary>
         public static HostFaceKind ClassifyFace(V3 point, V3 bbMin, V3 bbMax, V3 right, V3 up)
         {

@@ -43,7 +43,8 @@ Matches Bird Tools official Help + Configure:
   - Upper: that tag at stack bottom; others grow up
   - Lower: that tag at stack top; others grow down
 - Repeat clicks until ESC
-- Yellow landing + red leader: **per-tag adaptive lengths** in common-angle mode (both grow/shrink to reach pinned host contact); parallel red segments; ends on original host face
+- **Vertical Spacing**: user-set gap (mm) between stacked tag texts
+- **Anchor tag** (row 0 at click): sets **equal horizontal landing** for whole stack; **red leader** length varies per host; all red segments **parallel** (common-angle)
 - **Vertical Spacing**: freely set (mm); enforces a no-overlap minimum from tag height
 - **Leader contact face**: snapped to the original host face (left stays left). Ends stay on the element (no fly-away)
 - **Constant Landing**: ON = fixed landing rather than common angle

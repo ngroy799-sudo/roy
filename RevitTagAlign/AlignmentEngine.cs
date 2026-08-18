@@ -11,7 +11,7 @@ namespace RevitTagAlign
     /// - Pick = taghead of the tag closest to tagged elements
     /// - Upper: that tag at stack bottom; others grow +Up
     /// - Lower: that tag at stack top; others grow -Up
-    /// - Per-tag adaptive landing + red lengths (common-angle); tag texts in a vertical column
+    /// - Anchor tag (row 0) sets baseline landing; each tag adapts landing + red at parallel angle
     /// - Common-angle: parallel angled leaders to pinned ORIGINAL host contact
     /// - Constant Landing: fixed landing; angled segments aim at hosts (not common angle)
     /// - Face never switches (left stays left); ends stay on the element (no fly-away)
@@ -186,6 +186,27 @@ namespace RevitTagAlign
             V3 vArrow = ToV3(arrowWorld);
             V3 vPick = ToV3(tagPosition);
 
+            // Anchor = items[0] at row 0 (closest-to-pick / bottom-or-top host). Its landing
+            // defines equal horizontal landing for the whole stack; red lengths vary per tag.
+            double sharedLanding = uniformLanding;
+            if (commonAngle && items.Count > 0)
+            {
+                AnnotationItem anchorItem = items[0];
+                EnsureHostBounds(anchorItem);
+                V3 anchorHead = LeaderGeometry.StackHead(vPick, vUp, vRight, 0, step, stackAwaySign, 0);
+                V3 anchorHost = ToV3(anchorItem.HostPoint ?? tagPosition);
+                sharedLanding = LeaderGeometry.ResolveAnchorLandingLength(
+                    anchorHead,
+                    anchorHost,
+                    ToV3(anchorItem.HostBBoxMin),
+                    ToV3(anchorItem.HostBBoxMax),
+                    vLanding,
+                    vArrow,
+                    vRight,
+                    vUp,
+                    uniformLanding);
+            }
+
             for (int i = 0; i < items.Count; i++)
             {
                 int col = i / perColumn;
@@ -209,7 +230,7 @@ namespace RevitTagAlign
                 ComputeLeaderPoints(
                     vHead, vHost, bbMin, bbMax, face,
                     vLanding, vArrow, vRight, vUp,
-                    commonAngle, uniformLanding,
+                    commonAngle, sharedLanding, uniformLanding,
                     out vElbow, out vEnd);
 
                 XYZ head = FromV3(vHead);
@@ -249,6 +270,28 @@ namespace RevitTagAlign
             V3 vLanding = ToV3(landingDir);
             V3 vArrow = ToV3(arrowWorld);
 
+            double sharedLanding = uniformLanding;
+            if (commonAngle && items.Count > 0)
+            {
+                AnnotationItem anchor = FindAnchorItem(items, isUpper, vUp, vRight);
+                if (anchor != null)
+                {
+                    EnsureHostBounds(anchor);
+                    V3 anchorHead = ToV3(GetCurrentHead(anchor));
+                    V3 anchorHost = ToV3(anchor.HostPoint ?? GetCurrentHead(anchor));
+                    sharedLanding = LeaderGeometry.ResolveAnchorLandingLength(
+                        anchorHead,
+                        anchorHost,
+                        ToV3(anchor.HostBBoxMin),
+                        ToV3(anchor.HostBBoxMax),
+                        vLanding,
+                        vArrow,
+                        vRight,
+                        vUp,
+                        uniformLanding);
+                }
+            }
+
             foreach (AnnotationItem item in items)
             {
                 XYZ head = GetCurrentHead(item);
@@ -264,10 +307,42 @@ namespace RevitTagAlign
                 ComputeLeaderPoints(
                     vHead, vHost, bbMin, bbMax, face,
                     vLanding, vArrow, vRight, vUp,
-                    commonAngle, uniformLanding,
+                    commonAngle, sharedLanding, uniformLanding,
                     out vElbow, out vEnd);
                 ApplyItemGeometry(item, head, FromV3(vElbow), FromV3(vEnd), FromV3(vEnd), cfg, tagsOnLeft);
             }
+        }
+
+        /// <summary>Stack anchor: host at bottom (Upper) or top (Lower) — same as row 0 at pick.</summary>
+        private static AnnotationItem FindAnchorItem(
+            List<AnnotationItem> items,
+            bool isUpper,
+            V3 vUp,
+            V3 vRight)
+        {
+            if (items == null || items.Count == 0)
+                return null;
+
+            AnnotationItem best = items[0];
+            V3 bestHost = ToV3(best.HostPoint ?? best.OriginalHead ?? XYZ.Zero);
+            double bestKey = isUpper ? bestHost.Dot(vUp) : -bestHost.Dot(vUp);
+
+            for (int i = 1; i < items.Count; i++)
+            {
+                V3 h = ToV3(items[i].HostPoint ?? items[i].OriginalHead ?? XYZ.Zero);
+                double key = isUpper ? h.Dot(vUp) : -h.Dot(vUp);
+                if (key < bestKey)
+                {
+                    bestKey = key;
+                    best = items[i];
+                }
+                else if (Math.Abs(key - bestKey) < 1e-9 && h.Dot(vRight) < bestHost.Dot(vRight))
+                {
+                    best = items[i];
+                    bestHost = h;
+                }
+            }
+            return best;
         }
 
         private static void ComputeLeaderPoints(
@@ -281,27 +356,31 @@ namespace RevitTagAlign
             V3 vRight,
             V3 vUp,
             bool commonAngle,
-            double uniformLanding,
+            double sharedLanding,
+            double fallbackLanding,
             out V3 vElbow,
             out V3 vEnd)
         {
             if (commonAngle)
             {
-                // Landing + red both adapt per tag; red stays parallel; end pinned on original face.
-                LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
-                    vHead, vHost, bbMin, bbMax, vLanding, vArrow, vRight, vUp,
-                    out vElbow, out vEnd, uniformLanding);
+                // Anchor tag sets sharedLanding baseline. Each tag adapts landing + red
+                // to pinned host contact at the same parallel angle (lengths grow/shrink by row/host).
+                vEnd = LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
+                if (!LeaderGeometry.TrySolveAdaptiveElbow(vHead, vEnd, vLanding, vArrow, out vElbow))
+                {
+                    vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, sharedLanding);
+                    vEnd = LeaderGeometry.SnapEndToOriginalFace(vElbow, vArrow, bbMin, bbMax, face, vRight, vUp);
+                }
             }
             else
             {
-                vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, uniformLanding);
+                vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, fallbackLanding);
                 vEnd = LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
             }
         }
 
         /// <summary>
-        /// Fixed landing for Constant Landing mode only.
-        /// Common-angle mode uses per-tag adaptive landing + red lengths.
+        /// Default landing fallback. Common-angle stack uses anchor tag to set shared landing.
         /// </summary>
         private static double ResolveUniformLanding(AlignConfig cfg)
         {
