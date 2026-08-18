@@ -66,6 +66,50 @@ namespace RevitTagAlign
     {
         public const double Eps = 1e-9;
 
+        /// <summary>
+        /// Common-angle red leader direction (Bird Tools v1.4).
+        /// Angle is measured at the elbow between horizontal landing and red segment — not between tags.
+        /// </summary>
+        public static V3 CommonAngleArrow(V3 right, V3 up, bool tagsOnLeft, bool isUpper, double angleDegrees)
+        {
+            double sx = tagsOnLeft ? 1.0 : -1.0;
+            double sy = isUpper ? -1.0 : 1.0;
+            double a = Math.Max(0.0, Math.Min(90.0, angleDegrees)) * Math.PI / 180.0;
+            return (right * (sx * Math.Cos(a)) + up * (sy * Math.Sin(a))).Normalize();
+        }
+
+        /// <summary>
+        /// Absolute angle (degrees) between horizontal landing and red leader at the elbow.
+        /// </summary>
+        public static double ElbowAngleDegrees(V3 landingDir, V3 redDir)
+        {
+            V3 h = landingDir.Normalize();
+            V3 r = redDir.Normalize();
+            double dot = Math.Max(-1.0, Math.Min(1.0, Math.Abs(h.Dot(r))));
+            return Math.Acos(dot) * 180.0 / Math.PI;
+        }
+
+        /// <summary>
+        /// Sort key for stack row 0 = lowest host (Upper corners) or highest (Lower corners).
+        /// Matches AlignmentEngine host-height ordering.
+        /// </summary>
+        public static int CompareHostStackOrder(V3 hostA, V3 hostB, V3 right, V3 up, bool isUpper)
+        {
+            double uA = hostA.Dot(up);
+            double uB = hostB.Dot(up);
+            if (isUpper)
+            {
+                int c = uA.CompareTo(uB);
+                if (c != 0) return c;
+            }
+            else
+            {
+                int c = uB.CompareTo(uA);
+                if (c != 0) return c;
+            }
+            return hostA.Dot(right).CompareTo(hostB.Dot(right));
+        }
+
         public static V3 StackHead(V3 pick, V3 up, V3 right, int row, double step, double stackAwaySign, double alongRight)
         {
             return pick + up * (stackAwaySign * row * step) + right * alongRight;

@@ -376,9 +376,8 @@ namespace RevitTagAlign
             }
             else
             {
-                double a = Math.Max(0.0, Math.Min(90.0, cfg.AngleDegrees)) * Math.PI / 180.0;
-                // In view plane: horizontal component Cos(a) toward hosts, vertical Sin(a) toward hosts.
-                arrowWorld = (right * (sx * Math.Cos(a)) + up * (sy * Math.Sin(a))).Normalize();
+                V3 vArrow = LeaderGeometry.CommonAngleArrow(ToV3(right), ToV3(up), tagsOnLeft, isUpper, cfg.AngleDegrees);
+                arrowWorld = FromV3(vArrow);
             }
         }
 

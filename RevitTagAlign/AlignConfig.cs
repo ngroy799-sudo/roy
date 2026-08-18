@@ -37,7 +37,10 @@ namespace RevitTagAlign
         /// </summary>
         public bool PickAngleThenTagPosition { get; set; } = false;
 
-        /// <summary>Fixed leader angle in degrees (0–90). Combined with corner direction.</summary>
+        /// <summary>
+        /// Fixed leader angle in degrees (0–90) at the elbow between horizontal landing and red leader.
+        /// Not the vertical gap between stacked tags (see VerticalSpacingFt).
+        /// </summary>
         public double AngleDegrees { get; set; } = 45.0;
 
         /// <summary>

@@ -117,5 +117,63 @@ namespace RevitTagAlign.Tests
             Assert.Equal(HostFaceKind.Left, LeaderGeometry.ClassifyFace(left, bbMin, bbMax, Right, Up));
             Assert.Equal(HostFaceKind.Top, LeaderGeometry.ClassifyFace(top, bbMin, bbMax, Right, Up));
         }
+
+        [Fact]
+        public void Angle60_IsAtElbow_BetweenHorizontalLandingAndRedLeader()
+        {
+            V3 landingDir = Right;
+            V3 arrow = LeaderGeometry.CommonAngleArrow(Right, Up, tagsOnLeft: true, isUpper: true, angleDegrees: 60);
+            double elbow = LeaderGeometry.ElbowAngleDegrees(landingDir, arrow);
+            Assert.InRange(elbow, 59.0, 61.0);
+        }
+
+        [Fact]
+        public void HostFartherRight_LongerRedSegment_LeadersStillParallel()
+        {
+            // Host1 bbox shifted +3 ft right vs Host2; same height.
+            V3 boxNearMin = new V3(8, -0.5, 7.0);
+            V3 boxNearMax = new V3(10, 0.5, 8.0);
+            V3 boxFarMin = new V3(11, -0.5, 7.0);
+            V3 boxFarMax = new V3(13, 0.5, 8.0);
+            V3 contactNear = new V3(8, 0, 7.5);
+            V3 contactFar = new V3(11, 0, 7.5);
+
+            HostFaceKind fNear = LeaderGeometry.ClassifyFace(contactNear, boxNearMin, boxNearMax, Right, Up);
+            HostFaceKind fFar = LeaderGeometry.ClassifyFace(contactFar, boxFarMin, boxFarMax, Right, Up);
+
+            V3 landingDir = Right;
+            V3 arrow = LeaderGeometry.CommonAngleArrow(Right, Up, true, true, 60);
+
+            V3 pick = new V3(0, 0, 10);
+            V3 hNear = LeaderGeometry.StackHead(pick, Up, Right, 0, 0.5, 1, 0);
+            V3 hFar = LeaderGeometry.StackHead(pick, Up, Right, 1, 0.5, 1, 0);
+            V3 eNear = LeaderGeometry.ElbowFromHead(hNear, landingDir, 1.0);
+            V3 eFar = LeaderGeometry.ElbowFromHead(hFar, landingDir, 1.0);
+            V3 endNear = LeaderGeometry.SnapEndToOriginalFace(eNear, arrow, boxNearMin, boxNearMax, fNear, Right, Up);
+            V3 endFar = LeaderGeometry.SnapEndToOriginalFace(eFar, arrow, boxFarMin, boxFarMax, fFar, Right, Up);
+
+            double redNear = endNear.DistanceTo(eNear);
+            double redFar = endFar.DistanceTo(eFar);
+            Assert.True(redFar > redNear + 1.0, "farther host should have longer red segment");
+
+            V3 dNear = (endNear - eNear).Normalize();
+            V3 dFar = (endFar - eFar).Normalize();
+            Assert.True(Math.Abs(dNear.Dot(dFar) - 1.0) < 0.02);
+            Assert.InRange(LeaderGeometry.ElbowAngleDegrees(landingDir, arrow), 59.0, 61.0);
+        }
+
+        [Fact]
+        public void HostVerticalSwap_ChangesStackRowOrder()
+        {
+            V3 host1Low = new V3(10, 0, 7.0);
+            V3 host2Mid = new V3(10, 0, 8.0);
+            V3 host1Mid = new V3(10, 0, 8.0);
+            V3 host2Low = new V3(10, 0, 7.0);
+
+            // Before: host1 lower → row 0
+            Assert.True(LeaderGeometry.CompareHostStackOrder(host1Low, host2Mid, Right, Up, isUpper: true) < 0);
+            // After swap: host2 lower → host2 should sort before host1
+            Assert.True(LeaderGeometry.CompareHostStackOrder(host2Low, host1Mid, Right, Up, isUpper: true) < 0);
+        }
     }
 }

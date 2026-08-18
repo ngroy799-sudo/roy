@@ -38,7 +38,7 @@ and restored the next time you open Configure.
 ### Align Tags Command (Configure dialog)
 Matches Bird Tools official Help + Configure:
 - **4 corner presets**: Upper-Left / Upper-Right / Lower-Left / Lower-Right
-- **Angle slider**: fixed leader angle (mouse never changes angle)
+- **Angle slider**: angle at the **elbow** only (horizontal landing ↔ red leader) — **not** the gap between stacked tags (use Vertical Spacing)
 - **1 click**: position of the **closest tag to the tagged elements** (taghead)
   - Upper: that tag at stack bottom; others grow up
   - Lower: that tag at stack top; others grow down
@@ -65,6 +65,8 @@ Matches Bird Tools official Help + Configure:
 
 ```
 RevitTagAlign/
+├── docs/
+│   └── ALIGNMENT-BEHAVIOR.md         # 對齊行為說明（60° elbow、host 場景）
 ├── Build.bat                         # One-click Windows build → DLL
 ├── RevitTagAlign.csproj
 ├── RevitTagAlign.addin

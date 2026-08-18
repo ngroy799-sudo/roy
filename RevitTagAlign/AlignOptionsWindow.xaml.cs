@@ -122,7 +122,9 @@ namespace RevitTagAlign
             MessageBox.Show(
                 "TagAlign Configure (Bird Tools–style)\n\n" +
                 "1. Choose a corner — locks leader DIRECTION.\n" +
-                "2. Set Angle (°) — fixed; mouse does NOT change angle.\n" +
+                "2. Set Angle (°) — at the ELBOW only (horizontal landing ↔ red leader).\n" +
+                "   NOT the vertical gap between tags (use Vertical Spacing for that).\n" +
+                "   Fixed; mouse does NOT change angle.\n" +
                 "3. Proceed → if needed, select Tags/Text Notes.\n" +
                 "4. Click the position of the closest tag to the tagged\n" +
                 "   elements (taghead). Other tags stack away from hosts.\n" +
