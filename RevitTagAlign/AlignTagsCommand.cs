@@ -45,6 +45,7 @@ namespace RevitTagAlign
             {
                 ICollection<ElementId> selectedIds = uidoc.Selection.GetElementIds().ToList();
                 var items = CollectAnnotations(doc, view, selectedIds);
+                var alignIds = selectedIds;
 
                 string planeError;
                 if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
@@ -74,6 +75,7 @@ namespace RevitTagAlign
                             new AnnotationSelectionFilter(),
                             "Select Tags / Text Notes to align, then click Finish");
                         var ids = refs.Select(r => r.ElementId).ToList();
+                        alignIds = ids;
                         items = CollectAnnotations(doc, view, ids);
                     }
                     catch (Autodesk.Revit.Exceptions.OperationCanceledException)
@@ -87,6 +89,18 @@ namespace RevitTagAlign
                     TaskDialog.Show("TagAlign",
                         "No Tags / Text Notes selected.\nSelect annotations, then run TagAlign again.");
                     return Result.Cancelled;
+                }
+
+                int skipped = alignIds.Count - items.Count;
+                if (skipped > 0)
+                {
+                    TaskDialog.Show("TagAlign — selection",
+                        string.Format(
+                            "Will align {0} tag(s) / text note(s).\n\n" +
+                            "{1} selected element(s) skipped (not IndependentTag or TextNote).\n\n" +
+                            "Only aligned annotations move into the stack; skipped ones stay put.",
+                            items.Count,
+                            skipped));
                 }
 
                 if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
