@@ -7,10 +7,12 @@ on:
       - main
     paths:
       - 'RevitTagAlign/**'
+      - 'RevitTagAlign.Tests/**'
       - '.github/workflows/build-revit-tag-align.yml'
   pull_request:
     paths:
       - 'RevitTagAlign/**'
+      - 'RevitTagAlign.Tests/**'
   workflow_dispatch:
 
 jobs:
@@ -27,6 +29,9 @@ jobs:
 
       - name: Restore
         run: dotnet restore RevitTagAlign/RevitTagAlign.csproj
+
+      - name: Geometry tests (Bird Tools v1.4)
+        run: dotnet test RevitTagAlign.Tests/RevitTagAlign.Tests.csproj -c Release --nologo
 
       - name: Build Release
         run: dotnet build RevitTagAlign/RevitTagAlign.csproj -c Release --no-restore

@@ -6,16 +6,15 @@ using System.Linq;
 namespace RevitTagAlign
 {
     /// <summary>
-    /// Bird Tools–style geometry (view-aware), matching official Help + Configure diagrams:
+    /// Bird Tools–style geometry matching official Help + v1.4 demo
+    /// (https://www.youtube.com/watch?v=YVjbYY0tf6E):
     /// - Pick = taghead of the tag closest to tagged elements
     /// - Upper: that tag at stack bottom; others grow +Up
     /// - Lower: that tag at stack top; others grow -Up
-    /// - Yellow = horizontal landing along view Right (aligned)
-    /// - Red = parallel angled arrows (common-angle mode) toward hosts
-    /// - Constant Landing ON: fixed landing length; angled segments aim at hosts (not common angle)
-    /// - Leader end: pinned to original host contact point (face does not switch)
-    ///   unless Force Attached is on
-    /// - Stack uses full view Right/Up offsets (no Z wipe — required for sections)
+    /// - Equal horizontal landings; tag texts in a vertical column
+    /// - Common-angle: parallel angled leaders; ends snap to ORIGINAL host face
+    /// - Constant Landing: fixed landing; angled segments aim at hosts (not common angle)
+    /// - Face never switches (left stays left); ends stay on the element (no fly-away)
     /// </summary>
     public static class AlignmentEngine
     {
@@ -25,6 +24,8 @@ namespace RevitTagAlign
             public XYZ OriginalHead { get; set; }
             /// <summary>Original leader end on the host (contact point / face). Never relocate.</summary>
             public XYZ HostPoint { get; set; }
+            public XYZ HostBBoxMin { get; set; }
+            public XYZ HostBBoxMax { get; set; }
             public LeaderEndCondition? OriginalLeaderEndCondition { get; set; }
         }
 
@@ -169,41 +170,57 @@ namespace RevitTagAlign
             XYZ landingDir = right * landingSign;
 
             int perColumn = items.Count;
-            int columnCount = 1;
             if (cfg.IntermittentAlignment && cfg.HorizontalSpacingFt > 1e-9)
             {
-                columnCount = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(items.Count)));
+                int columnCount = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(items.Count)));
                 perColumn = (int)Math.Ceiling(items.Count / (double)columnCount);
             }
 
             double step = ComputeStackStep(items, view, cfg);
-            // One shared landing length for ALL tags → text column stays vertically aligned.
+            // One shared landing length → tag texts stay in a vertical column (video).
             double landing = ResolveUniformLanding(cfg);
+            bool commonAngle = !cfg.ConstantLanding;
+
+            V3 vRight = ToV3(right);
+            V3 vUp = ToV3(up);
+            V3 vLanding = ToV3(landingDir);
+            V3 vArrow = ToV3(arrowWorld);
+            V3 vPick = ToV3(tagPosition);
 
             for (int i = 0; i < items.Count; i++)
             {
                 int col = i / perColumn;
                 int row = i % perColumn;
 
-                // row 0 = closest tag at pick; others grow away from hosts.
-                double alongUp = stackAwaySign * row * step;
-                // Same Right coordinate for every row → vertical text alignment.
                 double alongRight = 0.0;
                 if (cfg.IntermittentAlignment)
                     alongRight = col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
 
-                // Full view-plane offset — do NOT clamp Z (section Up is often world Z).
-                XYZ head = tagPosition + up * alongUp + right * alongRight;
+                V3 vHead = LeaderGeometry.StackHead(vPick, vUp, vRight, row, step, stackAwaySign, alongRight);
+                V3 vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, landing);
 
-                // Uniform horizontal landing (equal length) — prevents "甩掉" / uneven text.
-                XYZ elbow = head + landingDir.Multiply(landing);
+                AnnotationItem item = items[i];
+                EnsureHostBounds(item);
+                V3 bbMin = ToV3(item.HostBBoxMin);
+                V3 bbMax = ToV3(item.HostBBoxMax);
+                V3 vHost = ToV3(item.HostPoint ?? tagPosition);
+                HostFaceKind face = LeaderGeometry.ClassifyFace(vHost, bbMin, bbMax, vRight, vUp);
 
-                // Pin end to original host contact point (face never switches).
-                // Do NOT re-solve elbows for parallel — that made landings unequal and
-                // caused leaders to "fly" farther on every click.
-                XYZ host = items[i].HostPoint ?? head;
+                V3 vEnd;
+                if (commonAngle)
+                {
+                    // Video: parallel leaders; end slides on the ORIGINAL face only.
+                    vEnd = LeaderGeometry.SnapEndToOriginalFace(vElbow, vArrow, bbMin, bbMax, face, vRight, vUp);
+                }
+                else
+                {
+                    vEnd = LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
+                }
 
-                ApplyItemGeometry(items[i], head, elbow, host, host, cfg, tagsOnLeft);
+                XYZ head = FromV3(vHead);
+                XYZ elbow = FromV3(vElbow);
+                XYZ end = FromV3(vEnd);
+                ApplyItemGeometry(item, head, elbow, end, end, cfg, tagsOnLeft);
             }
         }
 
@@ -231,14 +248,27 @@ namespace RevitTagAlign
             double landingSign = tagsOnLeft ? 1.0 : -1.0;
             XYZ landingDir = right * landingSign;
             double landing = ResolveUniformLanding(cfg);
+            bool commonAngle = !cfg.ConstantLanding;
+            V3 vRight = ToV3(right);
+            V3 vUp = ToV3(up);
+            V3 vLanding = ToV3(landingDir);
+            V3 vArrow = ToV3(arrowWorld);
 
             foreach (AnnotationItem item in items)
             {
                 XYZ head = GetCurrentHead(item);
                 if (head == null) continue;
-                XYZ host = item.HostPoint ?? head;
-                XYZ elbow = head + landingDir.Multiply(landing);
-                ApplyItemGeometry(item, head, elbow, host, host, cfg, tagsOnLeft);
+                EnsureHostBounds(item);
+                V3 vHead = ToV3(head);
+                V3 vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, landing);
+                V3 bbMin = ToV3(item.HostBBoxMin);
+                V3 bbMax = ToV3(item.HostBBoxMax);
+                V3 vHost = ToV3(item.HostPoint ?? head);
+                HostFaceKind face = LeaderGeometry.ClassifyFace(vHost, bbMin, bbMax, vRight, vUp);
+                V3 vEnd = commonAngle
+                    ? LeaderGeometry.SnapEndToOriginalFace(vElbow, vArrow, bbMin, bbMax, face, vRight, vUp)
+                    : LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
+                ApplyItemGeometry(item, head, FromV3(vElbow), FromV3(vEnd), FromV3(vEnd), cfg, tagsOnLeft);
             }
         }
 
@@ -482,6 +512,67 @@ namespace RevitTagAlign
                         : HorizontalTextAlignment.Left;
                     break;
             }
+        }
+
+        private static V3 ToV3(XYZ p)
+        {
+            if (p == null) return new V3(0, 0, 0);
+            return new V3(p.X, p.Y, p.Z);
+        }
+
+        private static XYZ FromV3(V3 p)
+        {
+            return new XYZ(p.X, p.Y, p.Z);
+        }
+
+        public static void FillHostGeometry(AnnotationItem item, View view)
+        {
+            if (item == null) return;
+            Element hostEl = TryGetTaggedElement(item);
+            BoundingBoxXYZ bb = null;
+            try
+            {
+                if (hostEl != null)
+                    bb = view != null ? hostEl.get_BoundingBox(view) : hostEl.get_BoundingBox(null);
+                if (bb == null && hostEl != null)
+                    bb = hostEl.get_BoundingBox(null);
+            }
+            catch { }
+
+            if (bb != null)
+            {
+                item.HostBBoxMin = bb.Min;
+                item.HostBBoxMax = bb.Max;
+            }
+            else
+            {
+                EnsureHostBounds(item);
+            }
+        }
+
+        private static void EnsureHostBounds(AnnotationItem item)
+        {
+            if (item.HostBBoxMin != null && item.HostBBoxMax != null)
+                return;
+            XYZ p = item.HostPoint ?? item.OriginalHead ?? XYZ.Zero;
+            const double pad = 0.15;
+            item.HostBBoxMin = new XYZ(p.X - pad, p.Y - pad, p.Z - pad);
+            item.HostBBoxMax = new XYZ(p.X + pad, p.Y + pad, p.Z + pad);
+        }
+
+        private static Element TryGetTaggedElement(AnnotationItem item)
+        {
+            try
+            {
+                if (item.Element is IndependentTag tag)
+                {
+                    ICollection<Element> els = tag.GetTaggedLocalElements();
+                    if (els != null && els.Count > 0)
+                        return els.First();
+                }
+            }
+            catch { }
+            return null;
         }
 
         public static LeaderEndCondition? GetTagLeaderEndCondition(IndependentTag tag)

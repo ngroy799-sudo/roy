@@ -44,7 +44,7 @@ namespace RevitTagAlign
             try
             {
                 ICollection<ElementId> selectedIds = uidoc.Selection.GetElementIds().ToList();
-                var items = CollectAnnotations(doc, selectedIds);
+                var items = CollectAnnotations(doc, view, selectedIds);
 
                 string planeError;
                 if (!WorkPlaneHelper.TryEnsureForPicking(uidoc, out planeError))
@@ -74,7 +74,7 @@ namespace RevitTagAlign
                             new AnnotationSelectionFilter(),
                             "Select Tags / Text Notes to align, then click Finish");
                         var ids = refs.Select(r => r.ElementId).ToList();
-                        items = CollectAnnotations(doc, ids);
+                        items = CollectAnnotations(doc, view, ids);
                     }
                     catch (Autodesk.Revit.Exceptions.OperationCanceledException)
                     {
@@ -225,6 +225,7 @@ namespace RevitTagAlign
 
         private static List<AlignmentEngine.AnnotationItem> CollectAnnotations(
             Document doc,
+            View view,
             ICollection<ElementId> selectedIds)
         {
             var items = new List<AlignmentEngine.AnnotationItem>();
@@ -243,6 +244,7 @@ namespace RevitTagAlign
                         HostPoint = AlignmentEngine.GetTagHostPoint(tag),
                         OriginalLeaderEndCondition = AlignmentEngine.GetTagLeaderEndCondition(tag)
                     });
+                    AlignmentEngine.FillHostGeometry(items[items.Count - 1], view);
                 }
                 else if (elem is TextNote tn)
                 {
@@ -253,6 +255,7 @@ namespace RevitTagAlign
                         HostPoint = AlignmentEngine.GetTextNoteHostPoint(tn),
                         OriginalLeaderEndCondition = null
                     });
+                    AlignmentEngine.FillHostGeometry(items[items.Count - 1], view);
                 }
             }
 
