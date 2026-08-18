@@ -5,7 +5,7 @@ namespace RevitTagAlign
     /// <summary>
     /// Pure view-plane math matching Bird Tools Tag Alignment Tool v1.4
     /// (https://www.youtube.com/watch?v=YVjbYY0tf6E):
-    /// stacked tagheads, equal horizontal landings, parallel angled leaders,
+    /// stacked tagheads, parallel angled leaders (per-tag adaptive landing + red lengths in common-angle mode),
     /// ends snapped to the ORIGINAL host face (never switches, never flies).
     /// No Revit types — unit-tested independently.
     /// </summary>
@@ -118,6 +118,66 @@ namespace RevitTagAlign
         public static V3 ElbowFromHead(V3 head, V3 landingDir, double landing)
         {
             return head + landingDir.Normalize() * Math.Max(0.05, landing);
+        }
+
+        /// <summary>
+        /// Adaptive common-angle leader: horizontal landing length L and red length t vary so
+        /// head → elbow (horizontal) → end (along parallel arrow) meets the pinned end.
+        /// head + landingDir·L + arrow·t = end
+        /// </summary>
+        public static bool TrySolveAdaptiveElbow(
+            V3 head,
+            V3 end,
+            V3 landingDir,
+            V3 arrow,
+            out V3 elbow,
+            double minLanding = 0.05,
+            double minRed = 0.02)
+        {
+            elbow = head;
+            V3 ld = landingDir.Normalize();
+            V3 ad = arrow.Normalize();
+            V3 delta = end - head;
+
+            double a12 = ld.Dot(ad);
+            double det = 1.0 - a12 * a12;
+            if (Math.Abs(det) < 1e-12)
+                return false;
+
+            double b1 = delta.Dot(ld);
+            double b2 = delta.Dot(ad);
+            double landing = (b1 - a12 * b2) / det;
+            double red = (b2 - a12 * b1) / det;
+
+            if (red < minRed || landing < minLanding)
+                return false;
+
+            elbow = head + ld * landing;
+            return true;
+        }
+
+        /// <summary>Common-angle geometry with per-tag adaptive landing + red lengths.</summary>
+        public static bool TryComputeAdaptiveCommonAngleLeader(
+            V3 head,
+            V3 hostPoint,
+            V3 bbMin,
+            V3 bbMax,
+            V3 landingDir,
+            V3 arrow,
+            V3 right,
+            V3 up,
+            out V3 elbow,
+            out V3 end,
+            double fallbackLanding = 1.0)
+        {
+            HostFaceKind face = ClassifyFace(hostPoint, bbMin, bbMax, right, up);
+            end = ClampPointToOriginalFace(hostPoint, bbMin, bbMax, face, right, up);
+            if (TrySolveAdaptiveElbow(head, end, landingDir, arrow, out elbow))
+                return true;
+
+            elbow = ElbowFromHead(head, landingDir, fallbackLanding);
+            end = SnapEndToOriginalFace(elbow, arrow, bbMin, bbMax, face, right, up);
+            return false;
         }
 
         /// <summary>Which of the four view-aligned bbox faces the contact point sits on.</summary>

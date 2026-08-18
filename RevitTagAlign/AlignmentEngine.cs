@@ -11,8 +11,8 @@ namespace RevitTagAlign
     /// - Pick = taghead of the tag closest to tagged elements
     /// - Upper: that tag at stack bottom; others grow +Up
     /// - Lower: that tag at stack top; others grow -Up
-    /// - Equal horizontal landings; tag texts in a vertical column
-    /// - Common-angle: parallel angled leaders; ends snap to ORIGINAL host face
+    /// - Per-tag adaptive landing + red lengths (common-angle); tag texts in a vertical column
+    /// - Common-angle: parallel angled leaders to pinned ORIGINAL host contact
     /// - Constant Landing: fixed landing; angled segments aim at hosts (not common angle)
     /// - Face never switches (left stays left); ends stay on the element (no fly-away)
     /// </summary>
@@ -177,8 +177,7 @@ namespace RevitTagAlign
             }
 
             double step = ComputeStackStep(items, view, cfg);
-            // One shared landing length → tag texts stay in a vertical column (video).
-            double landing = ResolveUniformLanding(cfg);
+            double uniformLanding = ResolveUniformLanding(cfg);
             bool commonAngle = !cfg.ConstantLanding;
 
             V3 vRight = ToV3(right);
@@ -197,7 +196,6 @@ namespace RevitTagAlign
                     alongRight = col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
 
                 V3 vHead = LeaderGeometry.StackHead(vPick, vUp, vRight, row, step, stackAwaySign, alongRight);
-                V3 vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, landing);
 
                 AnnotationItem item = items[i];
                 EnsureHostBounds(item);
@@ -206,16 +204,13 @@ namespace RevitTagAlign
                 V3 vHost = ToV3(item.HostPoint ?? tagPosition);
                 HostFaceKind face = LeaderGeometry.ClassifyFace(vHost, bbMin, bbMax, vRight, vUp);
 
+                V3 vElbow;
                 V3 vEnd;
-                if (commonAngle)
-                {
-                    // Video: parallel leaders; end slides on the ORIGINAL face only.
-                    vEnd = LeaderGeometry.SnapEndToOriginalFace(vElbow, vArrow, bbMin, bbMax, face, vRight, vUp);
-                }
-                else
-                {
-                    vEnd = LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
-                }
+                ComputeLeaderPoints(
+                    vHead, vHost, bbMin, bbMax, face,
+                    vLanding, vArrow, vRight, vUp,
+                    commonAngle, uniformLanding,
+                    out vElbow, out vEnd);
 
                 XYZ head = FromV3(vHead);
                 XYZ elbow = FromV3(vElbow);
@@ -247,7 +242,7 @@ namespace RevitTagAlign
 
             double landingSign = tagsOnLeft ? 1.0 : -1.0;
             XYZ landingDir = right * landingSign;
-            double landing = ResolveUniformLanding(cfg);
+            double uniformLanding = ResolveUniformLanding(cfg);
             bool commonAngle = !cfg.ConstantLanding;
             V3 vRight = ToV3(right);
             V3 vUp = ToV3(up);
@@ -260,21 +255,53 @@ namespace RevitTagAlign
                 if (head == null) continue;
                 EnsureHostBounds(item);
                 V3 vHead = ToV3(head);
-                V3 vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, landing);
                 V3 bbMin = ToV3(item.HostBBoxMin);
                 V3 bbMax = ToV3(item.HostBBoxMax);
                 V3 vHost = ToV3(item.HostPoint ?? head);
                 HostFaceKind face = LeaderGeometry.ClassifyFace(vHost, bbMin, bbMax, vRight, vUp);
-                V3 vEnd = commonAngle
-                    ? LeaderGeometry.SnapEndToOriginalFace(vElbow, vArrow, bbMin, bbMax, face, vRight, vUp)
-                    : LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
+                V3 vElbow;
+                V3 vEnd;
+                ComputeLeaderPoints(
+                    vHead, vHost, bbMin, bbMax, face,
+                    vLanding, vArrow, vRight, vUp,
+                    commonAngle, uniformLanding,
+                    out vElbow, out vEnd);
                 ApplyItemGeometry(item, head, FromV3(vElbow), FromV3(vEnd), FromV3(vEnd), cfg, tagsOnLeft);
             }
         }
 
+        private static void ComputeLeaderPoints(
+            V3 vHead,
+            V3 vHost,
+            V3 bbMin,
+            V3 bbMax,
+            HostFaceKind face,
+            V3 vLanding,
+            V3 vArrow,
+            V3 vRight,
+            V3 vUp,
+            bool commonAngle,
+            double uniformLanding,
+            out V3 vElbow,
+            out V3 vEnd)
+        {
+            if (commonAngle)
+            {
+                // Landing + red both adapt per tag; red stays parallel; end pinned on original face.
+                LeaderGeometry.TryComputeAdaptiveCommonAngleLeader(
+                    vHead, vHost, bbMin, bbMax, vLanding, vArrow, vRight, vUp,
+                    out vElbow, out vEnd, uniformLanding);
+            }
+            else
+            {
+                vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, uniformLanding);
+                vEnd = LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
+            }
+        }
+
         /// <summary>
-        /// Shared yellow landing length for the whole stack (keeps tag texts vertically aligned).
-        /// Never scales with click↔host distance — that caused multi-tag leaders to fly across the view.
+        /// Fixed landing for Constant Landing mode only.
+        /// Common-angle mode uses per-tag adaptive landing + red lengths.
         /// </summary>
         private static double ResolveUniformLanding(AlignConfig cfg)
         {

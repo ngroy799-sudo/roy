@@ -29,8 +29,7 @@ Tag ──── 黃 landing（水平）──── elbow ╲
 
 ## 多 tag（Common Angle，Constant Landing OFF）
 
-- 黃 landing：**等長**（`ResolveUniformLanding`）
-- 紅 leader：**平行**（`CommonAngleArrow`）
+- 黃 landing + 紅 leader：**逐條自動調整長度**（common angle）；紅段平行；end pin 原本 face
 - End：**SnapEndToOriginalFace** — pin 原本 face，唔轉面
 - Tag → 黃 → 紅 → Host：**連續線**
 

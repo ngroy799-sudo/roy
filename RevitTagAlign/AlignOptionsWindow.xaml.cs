@@ -129,8 +129,8 @@ namespace RevitTagAlign
                 "4. Click the position of the closest tag to the tagged\n" +
                 "   elements (taghead). Other tags stack away from hosts.\n" +
                 "   Upper: stack grows up from pick. Lower: grows down.\n" +
-                "   Texts stay in a vertical column; landings are equal;\n" +
-                "   angled leaders stay parallel (Bird Tools v1.4).\n" +
+                "   Texts stay in a vertical column; landing + red lengths adapt per tag;\n" +
+                "   angled leaders stay parallel (common-angle mode).\n" +
                 "5. Click again to re-adjust; ESC to finish.\n\n" +
                 "Constant Landing: ON = fixed landing (not common angle).\n" +
                 "Vertical Spacing: freely set gap between tag texts (mm);\n" +
