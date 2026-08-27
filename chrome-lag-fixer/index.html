@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>點解 Chrome 成日 LAG · chrome-lag-fixer</title>
+  <style>
+    :root {
+      --bg0: #120e0b;
+      --bg1: #24180f;
+      --ink: #f4ece3;
+      --muted: #b7a898;
+      --accent: #ffb020;
+      --accent-ink: #2a1904;
+      --ok: #3ecf8e;
+      --warn: #ff7a59;
+      --line: rgba(244, 236, 227, 0.12);
+      --card: rgba(255, 255, 255, 0.04);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 500px at 0% -10%, #5a3214 0%, transparent 50%),
+        radial-gradient(700px 420px at 100% 0%, #3a2218 0%, transparent 46%),
+        linear-gradient(165deg, var(--bg0), var(--bg1));
+      line-height: 1.6;
+    }
+    main {
+      width: min(760px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 3rem 0 4.5rem;
+    }
+    .kicker {
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      color: var(--accent);
+      font-weight: 700;
+      margin: 0 0 0.4rem;
+    }
+    h1 {
+      font-size: clamp(1.7rem, 4.4vw, 2.35rem);
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+      line-height: 1.2;
+    }
+    .lead { color: var(--muted); margin: 0 0 1.6rem; max-width: 40em; }
+    .answer {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: 0.6rem;
+      padding: 1rem 1.15rem;
+      margin: 0 0 2rem;
+    }
+    .answer strong { color: var(--accent); }
+    nav.toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0 0 2.2rem;
+    }
+    nav.toc a {
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 0.35rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+    }
+    nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+    h2 {
+      font-size: 1.15rem;
+      margin: 2.2rem 0 0.8rem;
+      letter-spacing: -0.02em;
+    }
+    .cause {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0.7rem;
+      padding: 1rem 1.1rem 1.05rem;
+      margin: 0 0 0.75rem;
+    }
+    .cause header {
+      display: flex;
+      gap: 0.7rem;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .cause h3 { margin: 0; font-size: 1.02rem; }
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(255, 176, 32, 0.16);
+      color: var(--accent);
+    }
+    .badge.mid {
+      background: rgba(255, 122, 89, 0.14);
+      color: var(--warn);
+    }
+    .cause p { margin: 0.45rem 0 0; color: var(--muted); font-size: 0.95rem; }
+    .cause .fix {
+      margin-top: 0.65rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 0.92rem;
+    }
+    ol.steps, ul.check {
+      margin: 0;
+      padding-left: 1.2rem;
+    }
+    ol.steps li, ul.check li { margin: 0.4rem 0; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0.7rem;
+      padding: 1rem 1.15rem;
+    }
+    code, .path {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 0.86em;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 0.08rem 0.35rem;
+      border-radius: 0.3rem;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.65rem;
+    }
+    @media (min-width: 640px) {
+      .row.two { grid-template-columns: 1fr 1fr; }
+    }
+    button.copy, a.file {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 0.45rem;
+      text-decoration: none;
+    }
+    button.copy {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    a.file {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    a.file:hover { border-color: var(--accent); }
+    .copied { color: var(--ok) !important; background: rgba(62, 207, 142, 0.16) !important; }
+    footer {
+      margin-top: 2.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .chrome-links { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="kicker">chrome-lag-fixer</p>
+    <h1>點解個 Chrome 成日 LAG 機</h1>
+    <p class="lead">
+      多數唔係 Chrome「壞咗」，而係合成畫面跟錯咗塊芒、同 NVIDIA 硬件加速打架、
+      再加擷取卡／OBS／廣告分頁。下面按你呢部機（雙芒、擷取卡、NVIDIA）排優先次序。
+    </p>
+
+    <div class="answer">
+      <strong>短答：</strong>
+      先對證兩件事——雙螢幕唔同 Hertz，同 Chrome 硬件加速。
+      超過一半 Windows + NVIDIA + 雙芒組合，關硬件加速或者統一刷新率就會即刻順。
+    </div>
+
+    <nav class="toc">
+      <a href="#causes">最可能原因</a>
+      <a href="#ab">三分鐘對證</a>
+      <a href="#tools">本機工具</a>
+      <a href="#chrome">chrome:// 頁</a>
+      <a href="#nvidia">NVIDIA / 擷取卡</a>
+    </nav>
+
+    <h2 id="causes">最可能原因（按你部機排）</h2>
+
+    <article class="cause">
+      <header>
+        <h3>1. 雙螢幕唔同 Hertz</h3>
+        <span class="badge">最常見</span>
+      </header>
+      <p>
+        遊戲芒 144／165／240Hz，電腦芒 60Hz。Chrome 嘅 compositor 會跟錯一邊嘅 VSync，
+        結果捲動、拖視窗、YouTube、漫畫頁都會一卡一卡。你有遊戲芒 + 電腦芒，呢個優先查。
+      </p>
+      <p class="fix"><strong>對證：</strong>暫時將兩塊芒設成同一個刷新率，或者只喺高 Hertz 嗰塊開 Chrome。</p>
+    </article>
+
+    <article class="cause">
+      <header>
+        <h3>2. NVIDIA + Chrome 硬件加速</h3>
+        <span class="badge">最常見</span>
+      </header>
+      <p>
+        Chrome 預設用 GPU 畫網頁。RTX 40／50 + 新 driver，再疊 Skia Graphite／Vulkan，
+        好常出現「CPU 唔高但畫面頓」。關硬件加速如果即刻順，就係呢條。
+      </p>
+      <p class="fix"><strong>對證：</strong>完全退出 Chrome，跑 <span class="path">02-test-no-gpu.bat</span>。</p>
+    </article>
+
+    <article class="cause">
+      <header>
+        <h3>3. 擷取卡被當成多一塊芒</h3>
+        <span class="badge mid">中</span>
+      </header>
+      <p>
+        AVerMedia GC553 Pro 有時會令 Windows／Chrome 以為多咗一個 display，
+        刷新率同 GPU 排程被打亂。畫面仲喺，但瀏覽器開始 stutter。
+      </p>
+      <p class="fix"><strong>對證：</strong>拔擷取卡 HDMI／USB 再開 Chrome。顯示設定唔好將桌面延伸去張卡。</p>
+    </article>
+
+    <article class="cause">
+      <header>
+        <h3>4. OBS／NVIDIA Overlay 搶 GPU</h3>
+        <span class="badge mid">中</span>
+      </header>
+      <p>
+        背景編碼 + Chrome GPU 加速一齊排隊。GeForce Overlay、Instant Replay、Streaming Center
+        開住都同樣。
+      </p>
+      <p class="fix"><strong>對證：</strong>工作管理員結束 OBS、NVIDIA Share、AVerMedia 相關程式，再開 Chrome。</p>
+    </article>
+
+    <article class="cause">
+      <header>
+        <h3>5. 廣告站、分頁、Profile 脹</h3>
+        <span class="badge mid">中</span>
+      </header>
+      <p>
+        漫畫站彈窗／自動播放片、幾十個分頁、擴充功能、GPUCache 幾百 MB 以上，
+        renderer 會拖死。Shift+Esc 開 Chrome 工作管理員睇邊個分頁食 CPU。
+      </p>
+      <p class="fix"><strong>對證：</strong>跑 <span class="path">01-diagnose.bat</span> 睇 RAM 同 cache；廣告站裝 uBlock Origin。</p>
+    </article>
+
+    <h2 id="ab">三分鐘對證（照次序）</h2>
+    <div class="panel">
+      <ol class="steps">
+        <li>雙擊 <span class="path">01-diagnose.bat</span>，留低 <span class="path">reports/chrome-lag-report.txt</span>。</li>
+        <li>完全退出 Chrome → <span class="path">02-test-no-gpu.bat</span> → 用會 lag 嘅網站試 30 秒。</li>
+        <li><strong>順咗</strong>：去 <code>chrome://settings/system</code> 關閉「使用圖形加速功能」，或者改用 <span class="path">04-launch-smooth.bat</span>。</li>
+        <li><strong>仍然 lag</strong>：顯示設定將兩塊芒改同一個 Hertz；退出 OBS／Overlay；拔擷取卡再試。</li>
+        <li>Cache 好大就跑 <span class="path">03-clean-gpu-cache.bat</span>（唔刪書籤／密碼）。</li>
+      </ol>
+    </div>
+
+    <h2 id="tools">本機工具</h2>
+    <div class="row two">
+      <div class="panel">
+        <strong>01-diagnose.bat</strong>
+        <p>GPU、芒 Hertz、Chrome RAM、擷取卡、OBS。</p>
+      </div>
+      <div class="panel">
+        <strong>02-test-no-gpu.bat</strong>
+        <p>關 GPU 加速重開。最緊要嘅 A/B。</p>
+      </div>
+      <div class="panel">
+        <strong>03-clean-gpu-cache.bat</strong>
+        <p>清 GPUCache／ShaderCache／Code Cache。</p>
+      </div>
+      <div class="panel">
+        <strong>04-launch-smooth.bat</strong>
+        <p>保留加速，但強制 D3D11、關 Graphite／Vulkan。</p>
+      </div>
+    </div>
+
+    <h2 id="chrome">Chrome 內頁</h2>
+    <p class="lead" style="margin-bottom:0.8rem">喺網址列貼呢啲（要喺 Chrome 入面開）：</p>
+    <div class="chrome-links">
+      <button class="copy" data-copy="chrome://gpu" type="button">複製 chrome://gpu</button>
+      <button class="copy" data-copy="chrome://settings/system" type="button">複製 系統設定</button>
+      <button class="copy" data-copy="chrome://flags/#skia-graphite" type="button">複製 Skia Graphite</button>
+      <button class="copy" data-copy="chrome://flags/#enable-vulkan" type="button">複製 Vulkan flag</button>
+      <button class="copy" data-copy="chrome://extensions" type="button">複製 擴充功能</button>
+    </div>
+    <p style="color:var(--muted);font-size:0.9rem;margin-top:0.8rem">
+      鍵盤 <code>Shift + Esc</code> = Chrome 工作管理員。如果 GPU 進程不停閃紅／重啟，就係驅動衝突。
+    </p>
+
+    <h2 id="nvidia">NVIDIA、G-SYNC、擷取卡</h2>
+    <div class="panel">
+      <ul class="check">
+        <li>NVIDIA 控制台 → 管理 3D 設定 → 程式：<code>chrome.exe</code> → 電源管理「偏好最高效能」；垂直同步用「應用程式控制」。</li>
+        <li>有 G-SYNC：改「只限全螢幕」。視窗模式 Chrome + G-SYNC 好易 stutter。</li>
+        <li>Windows 設定 → 系統 → 顯示器 → 圖形 → 變更預設圖形設定：試關閉「硬件加速 GPU 排程」（HAGS）。</li>
+        <li>同一頁將 Chrome 指定「高效能」NVIDIA，唔好用自動。</li>
+        <li>GC553 Pro：唔好把桌面延伸去擷取卡；唔錄就拔 HDMI 對證。</li>
+        <li>漫畫站：裝 <a href="https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm" style="color:var(--accent)">uBlock Origin</a>，廣告 iframe 本身就可以令 Chrome 卡死。</li>
+      </ul>
+    </div>
+
+    <footer>
+      本工具只讀本機資料同用官方 Chrome 參數重開瀏覽器，唔改系統驅動、唔抓網站內容。
+      報告可以連 <span class="path">reports/chrome-lag-report.txt</span> 一齊交返嚟繼續睇。
+    </footer>
+  </main>
+  <script>
+    document.querySelectorAll("button.copy").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var text = btn.getAttribute("data-copy");
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (err) {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+        var prev = btn.textContent;
+        btn.classList.add("copied");
+        btn.textContent = "已複製 " + text;
+        setTimeout(function () {
+          btn.classList.remove("copied");
+          btn.textContent = prev;
+        }, 1600);
+      });
+    });
+  </script>
+</body>
+</html>
