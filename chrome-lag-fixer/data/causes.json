@@ -1,0 +1,46 @@
+{
+  "project": "chrome-lag-fixer",
+  "question": "點解 Chrome 成日 LAG 機",
+  "ranked_causes": [
+    {
+      "id": "mixed-refresh",
+      "title": "雙螢幕唔同 Hertz",
+      "likelihood": "high",
+      "why": "Chrome compositor 跟錯一邊芒嘅 VSync。遊戲芒 144/165/240Hz + 電腦芒 60Hz 會令捲動、拖視窗、影片一卡一卡。",
+      "test": "暫時將兩塊芒設成同一個刷新率，或者只喺高 Hertz 芒開 Chrome。",
+      "fix": "顯示設定統一 Hertz；NVIDIA G-SYNC 改為只限全螢幕。"
+    },
+    {
+      "id": "hw-accel-nvidia",
+      "title": "NVIDIA + Chrome 硬件加速衝突",
+      "likelihood": "high",
+      "why": "Chrome 預設用 GPU 合成畫面。RTX 40/50 + 新 driver + Skia Graphite/Vulkan 常見 compositor stutter。",
+      "test": "跑 02-test-no-gpu.bat。如果關掉 GPU 即刻順，就係呢個。",
+      "fix": "chrome://settings/system 關閉硬件加速，或用 04-launch-smooth.bat（D3D11、關 Graphite/Vulkan）。"
+    },
+    {
+      "id": "capture-card-display",
+      "title": "擷取卡被當成顯示裝置",
+      "likelihood": "medium",
+      "why": "AVerMedia GC553 Pro 有時會令 Windows/Chrome 計多一塊芒，刷新率同 GPU 排程被打亂。",
+      "test": "拔除擷取卡 HDMI/USB 之後再開 Chrome 對比。",
+      "fix": "唔好將桌面延伸去擷取卡；裝置管理員停用多餘 monitor。"
+    },
+    {
+      "id": "obs-overlay",
+      "title": "OBS / NVIDIA Overlay 搶 GPU",
+      "likelihood": "medium",
+      "why": "背景編碼 + Chrome GPU 加速一齊排隊，瀏覽器先卡。",
+      "test": "完全退出 OBS、Streaming Center、GeForce Overlay 再開 Chrome。",
+      "fix": "唔用就關；要錄就將 Chrome 硬件加速同 OBS 編碼器錯開（一個用 GPU、一個用 CPU）。"
+    },
+    {
+      "id": "tabs-ads-profile",
+      "title": "分頁／廣告／Profile 脹大",
+      "likelihood": "medium",
+      "why": "漫畫站廣告、自動播放片、擴充功能、GPUCache 幾 GB 都會拖死 renderer。",
+      "test": "Shift+Esc 睇邊個分頁食 RAM/CPU；跑 01-diagnose.bat 睇 profile 大細。",
+      "fix": "裝 uBlock Origin、清 GPU cache（03-clean-gpu-cache.bat）、停用多餘擴充功能。"
+    }
+  ]
+}
