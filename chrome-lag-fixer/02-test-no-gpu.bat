@@ -28,7 +28,7 @@ taskkill /IM chrome.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
 echo 啟動 Chrome（--disable-gpu）...
-start "" "%CHROME%" --disable-gpu --disable-gpu-compositing --new-window "chrome://gpu"
+start "" "%CHROME%" --disable-gpu --new-window "chrome://gpu"
 echo.
 echo  而家用平時會 lag 嘅網站試 30 秒。
 echo  順咗 → 去 chrome://settings/system 關閉「使用圖形加速功能」
