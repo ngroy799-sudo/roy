@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SAMPLE ONLY — assign via KS UI first when possible.
+  Search in KS for: TagAlign
+-->
+<Shortcuts>
+  <ShortcutItem
+      CommandName="TagAlign Align Selected Tags"
+      CommandId="CustomCtrl_%CustomCtrl_%TagAlign Tool%TagAlign Commands%TagAlign Align Selected Tags"
+      Shortcuts="TA"
+      Paths="TagAlign Tool&gt;TagAlign Commands" />
+  <ShortcutItem
+      CommandName="TagAlign Leader Dashboard"
+      CommandId="CustomCtrl_%CustomCtrl_%TagAlign Tool%TagAlign Commands%TagAlign Leader Dashboard"
+      Shortcuts="TD"
+      Paths="TagAlign Tool&gt;TagAlign Commands" />
+  <ShortcutItem
+      CommandName="TagAlign Settings Folder"
+      CommandId="CustomCtrl_%CustomCtrl_%TagAlign Tool%TagAlign Commands%TagAlign Settings Folder"
+      Shortcuts="TS"
+      Paths="TagAlign Tool&gt;TagAlign Commands" />
+</Shortcuts>

@@ -1,0 +1,779 @@
+using Autodesk.Revit.DB;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace RevitTagAlign
+{
+    /// <summary>
+    /// Bird Tools–style geometry matching official Help + v1.4 demo
+    /// (https://www.youtube.com/watch?v=YVjbYY0tf6E):
+    /// - Pick = taghead of the tag closest to tagged elements
+    /// - Upper: that tag at stack bottom; others grow +Up
+    /// - Lower: that tag at stack top; others grow -Up
+    /// - Anchor tag (row 0) sets equal horizontal landing for the whole stack
+    /// - Common-angle: equal landings, parallel angled reds; ends pinned to ORIGINAL host contact
+    /// - Constant Landing: fixed landing; angled segments aim at hosts (not common angle)
+    /// - Face never switches (left stays left); ends stay on the element (no fly-away)
+    /// </summary>
+    public static class AlignmentEngine
+    {
+        public class AnnotationItem
+        {
+            public Element Element { get; set; }
+            public XYZ OriginalHead { get; set; }
+            /// <summary>Original leader end on the host (contact point / face). Never relocate.</summary>
+            public XYZ HostPoint { get; set; }
+            public XYZ HostBBoxMin { get; set; }
+            public XYZ HostBBoxMax { get; set; }
+            public LeaderEndCondition? OriginalLeaderEndCondition { get; set; }
+        }
+
+        public static PickedAngle ComputeAngleFromTwoPoints(XYZ p1, XYZ p2)
+        {
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double len = Math.Sqrt(dx * dx + dy * dy);
+            if (len < 1e-9)
+            {
+                return new PickedAngle
+                {
+                    AngleRadians = Math.PI / 4.0,
+                    AngleDegreesAbs = 45.0,
+                    Direction = new XYZDir(Math.Cos(Math.PI / 4.0), -Math.Sin(Math.PI / 4.0))
+                };
+            }
+
+            dx /= len;
+            dy /= len;
+
+            double ang = Math.Atan2(dy, dx);
+            double absDeg = Math.Abs(ang) * 180.0 / Math.PI;
+            if (absDeg > 90.0)
+            {
+                dx = -dx;
+                dy = -dy;
+                ang = Math.Atan2(dy, dx);
+                absDeg = Math.Abs(ang) * 180.0 / Math.PI;
+            }
+
+            absDeg = Math.Max(0.0, Math.Min(90.0, absDeg));
+
+            return new PickedAngle
+            {
+                AngleRadians = ang,
+                AngleDegreesAbs = absDeg,
+                Direction = new XYZDir(dx, dy)
+            };
+        }
+
+        public static PickedAngle ComputeAngleFromReferenceAndPoint(XYZ reference, XYZ anglePoint)
+        {
+            return ComputeAngleFromTwoPoints(reference, anglePoint);
+        }
+
+        /// <summary>
+        /// Angle in the active view plane: project points onto view Right/Up, then measure.
+        /// </summary>
+        public static PickedAngle ComputeAngleInView(View view, XYZ reference, XYZ anglePoint)
+        {
+            if (view == null)
+                return ComputeAngleFromTwoPoints(reference, anglePoint);
+
+            XYZ right = view.RightDirection.Normalize();
+            XYZ up = view.UpDirection.Normalize();
+            XYZ delta = anglePoint - reference;
+            double x = delta.DotProduct(right);
+            double y = delta.DotProduct(up);
+            XYZ dirWorld = (right * x + up * y);
+            if (dirWorld.GetLength() < 1e-9)
+                return ComputeAngleFromTwoPoints(reference, anglePoint);
+
+            XYZ p2 = reference + dirWorld;
+            return ComputeAngleFromTwoPoints(reference, p2);
+        }
+
+        public static XYZ AverageHostPoint(IList<AnnotationItem> items)
+        {
+            if (items == null || items.Count == 0)
+                return XYZ.Zero;
+
+            double x = 0, y = 0, z = 0;
+            int n = 0;
+            foreach (var item in items)
+            {
+                XYZ p = item.HostPoint ?? item.OriginalHead;
+                if (p == null) continue;
+                x += p.X; y += p.Y; z += p.Z;
+                n++;
+            }
+            if (n == 0) return XYZ.Zero;
+            return new XYZ(x / n, y / n, z / n);
+        }
+
+        public static void Align(
+            Document doc,
+            List<AnnotationItem> items,
+            XYZ tagPosition,
+            AlignConfig cfg,
+            PickedAngle pickedAngle)
+        {
+            View view = doc != null ? doc.ActiveView : null;
+            AlignInView(doc, view, items, tagPosition, cfg, pickedAngle);
+        }
+
+        /// <summary>
+        /// Place stack so <paramref name="tagPosition"/> is the taghead of the
+        /// tag closest to the tagged elements (Bird Tools Help / Configure •).
+        /// </summary>
+        public static void AlignInView(
+            Document doc,
+            View view,
+            List<AnnotationItem> items,
+            XYZ tagPosition,
+            AlignConfig cfg,
+            PickedAngle pickedAngle)
+        {
+            if (items == null || items.Count == 0 || tagPosition == null || cfg == null)
+                return;
+
+            XYZ right = view != null ? view.RightDirection.Normalize() : XYZ.BasisX;
+            XYZ up = view != null ? view.UpDirection.Normalize() : XYZ.BasisY;
+
+            // Upper: closest tag at bottom, stack grows +Up.
+            // Lower: closest tag at top, stack grows -Up.
+            bool isUpper = cfg.Corner == CornerAlignment.UpperLeft
+                        || cfg.Corner == CornerAlignment.UpperRight;
+            double stackAwaySign = isUpper ? 1.0 : -1.0;
+
+            // Order by host contact height so multi-level picks stack predictably.
+            items = items
+                .OrderBy(i =>
+                {
+                    XYZ h = i.HostPoint ?? i.OriginalHead ?? XYZ.Zero;
+                    double u = h.DotProduct(up);
+                    return isUpper ? u : -u;
+                })
+                .ThenBy(i =>
+                {
+                    XYZ h = i.HostPoint ?? i.OriginalHead ?? XYZ.Zero;
+                    return h.DotProduct(right);
+                })
+                .ToList();
+
+            bool tagsOnLeft;
+            XYZ arrowWorld;
+            ResolveSideAndArrow(cfg, pickedAngle, isUpper, right, up, out tagsOnLeft, out arrowWorld);
+
+            // Landing toward host side along view right (left-side tags → landing goes +Right).
+            double landingSign = tagsOnLeft ? 1.0 : -1.0;
+            XYZ landingDir = right * landingSign;
+
+            int perColumn = items.Count;
+            if (cfg.IntermittentAlignment && cfg.HorizontalSpacingFt > 1e-9)
+            {
+                int columnCount = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(items.Count)));
+                perColumn = (int)Math.Ceiling(items.Count / (double)columnCount);
+            }
+
+            double step = ComputeStackStep(items, view, cfg);
+            double uniformLanding = ResolveUniformLanding(cfg);
+            bool commonAngle = !cfg.ConstantLanding;
+
+            V3 vRight = ToV3(right);
+            V3 vUp = ToV3(up);
+            V3 vLanding = ToV3(landingDir);
+            V3 vArrow = ToV3(arrowWorld);
+            V3 vPick = ToV3(tagPosition);
+
+            // Anchor = items[0] at row 0 (closest-to-pick / bottom-or-top host). Its landing
+            // length is shared by every row; only red segment length varies per host.
+            double sharedLanding = uniformLanding;
+            if (commonAngle && items.Count > 0)
+            {
+                AnnotationItem anchorItem = items[0];
+                EnsureHostBounds(anchorItem);
+                V3 anchorHead = LeaderGeometry.StackHead(vPick, vUp, vRight, 0, step, stackAwaySign, 0);
+                V3 anchorHost = ToV3(anchorItem.HostPoint ?? tagPosition);
+                sharedLanding = LeaderGeometry.ResolveAnchorLandingLength(
+                    anchorHead,
+                    anchorHost,
+                    ToV3(anchorItem.HostBBoxMin),
+                    ToV3(anchorItem.HostBBoxMax),
+                    vLanding,
+                    vArrow,
+                    vRight,
+                    vUp,
+                    uniformLanding);
+            }
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                int col = i / perColumn;
+                int row = i % perColumn;
+
+                double alongRight = 0.0;
+                if (cfg.IntermittentAlignment)
+                    alongRight = col * cfg.HorizontalSpacingFt * (tagsOnLeft ? -1.0 : 1.0);
+
+                V3 vHead = LeaderGeometry.StackHead(vPick, vUp, vRight, row, step, stackAwaySign, alongRight);
+
+                AnnotationItem item = items[i];
+                EnsureHostBounds(item);
+                V3 bbMin = ToV3(item.HostBBoxMin);
+                V3 bbMax = ToV3(item.HostBBoxMax);
+                V3 vHost = ToV3(item.HostPoint ?? tagPosition);
+                HostFaceKind face = LeaderGeometry.ClassifyFace(vHost, bbMin, bbMax, vRight, vUp);
+
+                V3 vElbow;
+                V3 vEnd;
+                ComputeLeaderPoints(
+                    vHead, vHost, bbMin, bbMax, face,
+                    vLanding, vArrow, vRight, vUp,
+                    commonAngle, sharedLanding, uniformLanding,
+                    out vElbow, out vEnd);
+
+                XYZ head = FromV3(vHead);
+                XYZ elbow = FromV3(vElbow);
+                XYZ end = FromV3(vEnd);
+                XYZ pinHost = item.HostPoint ?? end;
+                ApplyItemGeometry(item, head, elbow, end, pinHost, cfg, tagsOnLeft);
+            }
+        }
+
+        /// <summary>
+        /// After angle click: update leaders only (keep current head positions).
+        /// </summary>
+        public static void PreviewAngleAtCurrentPositions(
+            List<AnnotationItem> items,
+            AlignConfig cfg,
+            PickedAngle pickedAngle,
+            View view)
+        {
+            if (items == null || items.Count == 0 || cfg == null)
+                return;
+
+            XYZ right = view != null ? view.RightDirection.Normalize() : XYZ.BasisX;
+            XYZ up = view != null ? view.UpDirection.Normalize() : XYZ.BasisY;
+            bool isUpper = cfg.Corner == CornerAlignment.UpperLeft
+                        || cfg.Corner == CornerAlignment.UpperRight;
+
+            bool tagsOnLeft;
+            XYZ arrowWorld;
+            ResolveSideAndArrow(cfg, pickedAngle, isUpper, right, up, out tagsOnLeft, out arrowWorld);
+
+            double landingSign = tagsOnLeft ? 1.0 : -1.0;
+            XYZ landingDir = right * landingSign;
+            double uniformLanding = ResolveUniformLanding(cfg);
+            bool commonAngle = !cfg.ConstantLanding;
+            V3 vRight = ToV3(right);
+            V3 vUp = ToV3(up);
+            V3 vLanding = ToV3(landingDir);
+            V3 vArrow = ToV3(arrowWorld);
+
+            double sharedLanding = uniformLanding;
+            if (commonAngle && items.Count > 0)
+            {
+                AnnotationItem anchor = FindAnchorItem(items, isUpper, vUp, vRight);
+                if (anchor != null)
+                {
+                    EnsureHostBounds(anchor);
+                    V3 anchorHead = ToV3(GetCurrentHead(anchor));
+                    V3 anchorHost = ToV3(anchor.HostPoint ?? GetCurrentHead(anchor));
+                    sharedLanding = LeaderGeometry.ResolveAnchorLandingLength(
+                        anchorHead,
+                        anchorHost,
+                        ToV3(anchor.HostBBoxMin),
+                        ToV3(anchor.HostBBoxMax),
+                        vLanding,
+                        vArrow,
+                        vRight,
+                        vUp,
+                        uniformLanding);
+                }
+            }
+
+            foreach (AnnotationItem item in items)
+            {
+                XYZ head = GetCurrentHead(item);
+                if (head == null) continue;
+                EnsureHostBounds(item);
+                V3 vHead = ToV3(head);
+                V3 bbMin = ToV3(item.HostBBoxMin);
+                V3 bbMax = ToV3(item.HostBBoxMax);
+                V3 vHost = ToV3(item.HostPoint ?? head);
+                HostFaceKind face = LeaderGeometry.ClassifyFace(vHost, bbMin, bbMax, vRight, vUp);
+                V3 vElbow;
+                V3 vEnd;
+                ComputeLeaderPoints(
+                    vHead, vHost, bbMin, bbMax, face,
+                    vLanding, vArrow, vRight, vUp,
+                    commonAngle, sharedLanding, uniformLanding,
+                    out vElbow, out vEnd);
+                XYZ end = FromV3(vEnd);
+                XYZ pinHost = item.HostPoint ?? end;
+                ApplyItemGeometry(item, head, FromV3(vElbow), end, pinHost, cfg, tagsOnLeft);
+            }
+        }
+
+        /// <summary>Stack anchor: host at bottom (Upper) or top (Lower) — same as row 0 at pick.</summary>
+        private static AnnotationItem FindAnchorItem(
+            List<AnnotationItem> items,
+            bool isUpper,
+            V3 vUp,
+            V3 vRight)
+        {
+            if (items == null || items.Count == 0)
+                return null;
+
+            AnnotationItem best = items[0];
+            V3 bestHost = ToV3(best.HostPoint ?? best.OriginalHead ?? XYZ.Zero);
+            double bestKey = isUpper ? bestHost.Dot(vUp) : -bestHost.Dot(vUp);
+
+            for (int i = 1; i < items.Count; i++)
+            {
+                V3 h = ToV3(items[i].HostPoint ?? items[i].OriginalHead ?? XYZ.Zero);
+                double key = isUpper ? h.Dot(vUp) : -h.Dot(vUp);
+                if (key < bestKey)
+                {
+                    bestKey = key;
+                    best = items[i];
+                }
+                else if (Math.Abs(key - bestKey) < 1e-9 && h.Dot(vRight) < bestHost.Dot(vRight))
+                {
+                    best = items[i];
+                    bestHost = h;
+                }
+            }
+            return best;
+        }
+
+        private static void ComputeLeaderPoints(
+            V3 vHead,
+            V3 vHost,
+            V3 bbMin,
+            V3 bbMax,
+            HostFaceKind face,
+            V3 vLanding,
+            V3 vArrow,
+            V3 vRight,
+            V3 vUp,
+            bool commonAngle,
+            double sharedLanding,
+            double fallbackLanding,
+            out V3 vElbow,
+            out V3 vEnd)
+        {
+            if (commonAngle)
+            {
+                // Bird Tools v1.4: equal horizontal landing column + parallel reds.
+                // End is pinned to original host contact on the original face (ApplyItemGeometry).
+                LeaderGeometry.ComputeStackCommonAngleLeader(
+                    vHead, bbMin, bbMax, face,
+                    vLanding, vArrow, vRight, vUp,
+                    sharedLanding, out vElbow, out vEnd);
+                vEnd = LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
+            }
+            else
+            {
+                vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, fallbackLanding);
+                vEnd = LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
+            }
+        }
+
+        /// <summary>
+        /// Default landing fallback. Common-angle stack uses anchor tag to set shared landing.
+        /// </summary>
+        private static double ResolveUniformLanding(AlignConfig cfg)
+        {
+            if (cfg.ConstantLanding)
+                return Math.Max(0.1, Math.Min(cfg.LandingDistanceFt, 20.0));
+
+            // Modest stable default (~ half of saved Landing Distance, capped ~900mm).
+            double d = cfg.LandingDistanceFt > 0.1 ? cfg.LandingDistanceFt * 0.5 : 1.0;
+            return Math.Max(0.25, Math.Min(d, 3.0));
+        }
+
+        /// <summary>
+        /// Center-to-center stack step from Configure → Vertical Spacing (mm→ft).
+        /// Never smaller than tallest tag height + padding, so texts cannot overlap.
+        /// </summary>
+        private static double ComputeStackStep(List<AnnotationItem> items, View view, AlignConfig cfg)
+        {
+            // User spacing is free to set; clamp only pathological zeros.
+            double user = Math.Max(0.01, cfg.VerticalSpacingFt);
+            double maxH = 0.0;
+            foreach (var item in items)
+                maxH = Math.Max(maxH, EstimateAnnotationHeight(item.Element, view));
+
+            // ~15mm padding beyond bbox so glyphs do not touch.
+            const double padding = 0.05;
+            double minNoOverlap = Math.Max(0.15, maxH + padding);
+            return Math.Max(user, minNoOverlap);
+        }
+
+        private static double EstimateAnnotationHeight(Element elem, View view)
+        {
+            try
+            {
+                BoundingBoxXYZ bb = view != null ? elem.get_BoundingBox(view) : elem.get_BoundingBox(null);
+                if (bb == null)
+                    return 0.35; // ~107mm fallback
+
+                XYZ up = view != null ? view.UpDirection.Normalize() : XYZ.BasisY;
+                double minU = double.MaxValue;
+                double maxU = double.MinValue;
+                XYZ[] corners =
+                {
+                    new XYZ(bb.Min.X, bb.Min.Y, bb.Min.Z),
+                    new XYZ(bb.Min.X, bb.Min.Y, bb.Max.Z),
+                    new XYZ(bb.Min.X, bb.Max.Y, bb.Min.Z),
+                    new XYZ(bb.Min.X, bb.Max.Y, bb.Max.Z),
+                    new XYZ(bb.Max.X, bb.Min.Y, bb.Min.Z),
+                    new XYZ(bb.Max.X, bb.Min.Y, bb.Max.Z),
+                    new XYZ(bb.Max.X, bb.Max.Y, bb.Min.Z),
+                    new XYZ(bb.Max.X, bb.Max.Y, bb.Max.Z),
+                };
+                foreach (XYZ c in corners)
+                {
+                    double u = c.DotProduct(up);
+                    if (u < minU) minU = u;
+                    if (u > maxU) maxU = u;
+                }
+                double h = maxU - minU;
+                if (h < 0.1) h = 0.35;
+                return h;
+            }
+            catch
+            {
+                return 0.35;
+            }
+        }
+
+        private static void ResolveSideAndArrow(
+            AlignConfig cfg,
+            PickedAngle pickedAngle,
+            bool isUpper,
+            XYZ right,
+            XYZ up,
+            out bool tagsOnLeft,
+            out XYZ arrowWorld)
+        {
+            tagsOnLeft = IsTagsOnLeft(cfg);
+            if (cfg.SwitchPickPointSide)
+                tagsOnLeft = !tagsOnLeft;
+
+            // Arrow from elbow toward hosts: +Right when tags on left; -Up when Upper, +Up when Lower.
+            double sx = tagsOnLeft ? 1.0 : -1.0;
+            double sy = isUpper ? -1.0 : 1.0;
+
+            if (pickedAngle != null)
+            {
+                XYZDir arrowDir = pickedAngle.Direction;
+                if (tagsOnLeft && arrowDir.X < 0) { arrowDir = new XYZDir(-arrowDir.X, -arrowDir.Y); }
+                if (!tagsOnLeft && arrowDir.X > 0) { arrowDir = new XYZDir(-arrowDir.X, -arrowDir.Y); }
+                cfg.AngleDegrees = pickedAngle.AngleDegreesAbs;
+
+                XYZ raw = new XYZ(arrowDir.X, arrowDir.Y, 0);
+                double ar = raw.DotProduct(right);
+                double au = raw.DotProduct(up);
+                if (Math.Abs(ar) + Math.Abs(au) > 1e-9)
+                    arrowWorld = (right * ar + up * au).Normalize();
+                else
+                    arrowWorld = (right * sx + up * sy * 0.7).Normalize();
+            }
+            else
+            {
+                V3 vArrow = LeaderGeometry.CommonAngleArrow(ToV3(right), ToV3(up), tagsOnLeft, isUpper, cfg.AngleDegrees);
+                arrowWorld = FromV3(vArrow);
+            }
+        }
+
+        private static XYZ GetCurrentHead(AnnotationItem item)
+        {
+            if (item.Element is IndependentTag tag)
+                return tag.TagHeadPosition;
+            if (item.Element is TextNote tn)
+                return tn.Coord;
+            return item.OriginalHead;
+        }
+
+        private static void ApplyItemGeometry(
+            AnnotationItem item,
+            XYZ head,
+            XYZ elbow,
+            XYZ freeEnd,
+            XYZ host,
+            AlignConfig cfg,
+            bool tagsOnLeft)
+        {
+            if (item.Element is IndependentTag tag)
+                PlaceTag(tag, head, elbow, freeEnd, host, cfg, item);
+            else if (item.Element is TextNote tn)
+                PlaceTextNote(tn, head, elbow, freeEnd, host, cfg, tagsOnLeft);
+        }
+
+        private static bool IsTagsOnLeft(AlignConfig cfg)
+        {
+            return cfg.Corner == CornerAlignment.UpperLeft
+                || cfg.Corner == CornerAlignment.LowerLeft;
+        }
+
+        private static void PlaceTag(
+            IndependentTag tag,
+            XYZ head,
+            XYZ elbow,
+            XYZ freeEnd,
+            XYZ originalHost,
+            AlignConfig cfg,
+            AnnotationItem item)
+        {
+            tag.TagHeadPosition = head;
+
+            if (!tag.HasLeader)
+                tag.HasLeader = true;
+
+            IList<Reference> refs = tag.GetTaggedReferences();
+            if (refs == null || refs.Count == 0)
+                return;
+
+            Reference firstRef = refs.First();
+
+            // Unless Force Attached: always Free + pin to original contact point
+            // so Revit cannot re-pick another face (left → top/bottom/right).
+            LeaderEndCondition desired = cfg.AttachedEndTags
+                ? LeaderEndCondition.Attached
+                : LeaderEndCondition.Free;
+
+            try
+            {
+                if (tag.LeaderEndCondition != desired)
+                    tag.LeaderEndCondition = desired;
+            }
+            catch { }
+
+            XYZ pin = originalHost ?? freeEnd ?? item.HostPoint;
+            if (desired == LeaderEndCondition.Free && pin != null)
+            {
+                try { tag.SetLeaderEnd(firstRef, pin); }
+                catch { }
+            }
+
+            try { tag.SetLeaderElbow(firstRef, elbow); }
+            catch { }
+
+            // Re-assert end after elbow — some Revit builds move the end when elbow changes.
+            if (desired == LeaderEndCondition.Free && pin != null)
+            {
+                try { tag.SetLeaderEnd(firstRef, pin); }
+                catch { }
+            }
+        }
+
+        private static void PlaceTextNote(
+            TextNote tn,
+            XYZ head,
+            XYZ elbow,
+            XYZ freeEnd,
+            XYZ originalHost,
+            AlignConfig cfg,
+            bool tagsOnLeft)
+        {
+            tn.Coord = head;
+            ApplyJustification(tn, cfg, tagsOnLeft);
+
+            try
+            {
+                IList<Leader> leaders = tn.GetLeaders();
+                if (leaders == null || leaders.Count == 0)
+                    return;
+
+                XYZ pin = originalHost ?? freeEnd;
+                foreach (Leader leader in leaders)
+                {
+                    leader.Elbow = elbow;
+                    if (cfg.AttachedEndTags)
+                        continue;
+                    if (pin == null)
+                        continue;
+                    try { leader.End = pin; }
+                    catch { }
+                }
+            }
+            catch { }
+        }
+
+        private static void ApplyJustification(TextNote tn, AlignConfig cfg, bool tagsOnLeft)
+        {
+            switch (cfg.Justification)
+            {
+                case TextNoteJustificationMode.Left:
+                    tn.HorizontalAlignment = HorizontalTextAlignment.Left;
+                    break;
+                case TextNoteJustificationMode.Right:
+                    tn.HorizontalAlignment = HorizontalTextAlignment.Right;
+                    break;
+                case TextNoteJustificationMode.Automatic:
+                    tn.HorizontalAlignment = tagsOnLeft
+                        ? HorizontalTextAlignment.Right
+                        : HorizontalTextAlignment.Left;
+                    break;
+            }
+        }
+
+        private static V3 ToV3(XYZ p)
+        {
+            if (p == null) return new V3(0, 0, 0);
+            return new V3(p.X, p.Y, p.Z);
+        }
+
+        private static XYZ FromV3(V3 p)
+        {
+            return new XYZ(p.X, p.Y, p.Z);
+        }
+
+        public static void FillHostGeometry(AnnotationItem item, View view)
+        {
+            if (item == null) return;
+            Element hostEl = TryGetTaggedElement(item);
+            BoundingBoxXYZ bb = null;
+            try
+            {
+                if (hostEl != null)
+                    bb = view != null ? hostEl.get_BoundingBox(view) : hostEl.get_BoundingBox(null);
+                if (bb == null && hostEl != null)
+                    bb = hostEl.get_BoundingBox(null);
+            }
+            catch { }
+
+            if (bb != null)
+            {
+                item.HostBBoxMin = bb.Min;
+                item.HostBBoxMax = bb.Max;
+            }
+            else
+            {
+                EnsureHostBounds(item);
+            }
+        }
+
+        private static void EnsureHostBounds(AnnotationItem item)
+        {
+            if (item.HostBBoxMin != null && item.HostBBoxMax != null)
+                return;
+            XYZ p = item.HostPoint ?? item.OriginalHead ?? XYZ.Zero;
+            const double pad = 0.15;
+            item.HostBBoxMin = new XYZ(p.X - pad, p.Y - pad, p.Z - pad);
+            item.HostBBoxMax = new XYZ(p.X + pad, p.Y + pad, p.Z + pad);
+        }
+
+        private static Element TryGetTaggedElement(AnnotationItem item)
+        {
+            try
+            {
+                if (item.Element is IndependentTag tag)
+                {
+                    ICollection<Element> els = tag.GetTaggedLocalElements();
+                    if (els != null && els.Count > 0)
+                        return els.First();
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        public static LeaderEndCondition? GetTagLeaderEndCondition(IndependentTag tag)
+        {
+            try
+            {
+                if (tag.HasLeader)
+                    return tag.LeaderEndCondition;
+            }
+            catch { }
+            return null;
+        }
+
+        public static XYZ GetTagHostPoint(IndependentTag tag)
+        {
+            XYZ end = null;
+            try
+            {
+                IList<Reference> refs = tag.GetTaggedReferences();
+                if (refs != null && refs.Count > 0 && tag.HasLeader)
+                    end = tag.GetLeaderEnd(refs.First());
+            }
+            catch { }
+
+            XYZ anchor = TryGetTaggedElementAnchor(tag);
+            if (end != null && anchor != null)
+            {
+                // Recover from a previous "fly-away": end drifted far from the element.
+                if (end.DistanceTo(anchor) > 20.0) // > ~6m
+                    return ClosestPointOnTaggedElement(tag, end) ?? anchor;
+                return end;
+            }
+
+            if (end != null)
+                return end;
+            if (anchor != null)
+                return anchor;
+            return tag.TagHeadPosition;
+        }
+
+        private static XYZ TryGetTaggedElementAnchor(IndependentTag tag)
+        {
+            try
+            {
+                ICollection<Element> els = tag.GetTaggedLocalElements();
+                if (els == null || els.Count == 0)
+                    return null;
+                Element el = els.First();
+                Location loc = el.Location;
+                if (loc is LocationPoint lp)
+                    return lp.Point;
+                BoundingBoxXYZ bb = el.get_BoundingBox(null);
+                if (bb != null)
+                    return (bb.Min + bb.Max) * 0.5;
+            }
+            catch { }
+            return null;
+        }
+
+        private static XYZ ClosestPointOnTaggedElement(IndependentTag tag, XYZ from)
+        {
+            try
+            {
+                ICollection<Element> els = tag.GetTaggedLocalElements();
+                if (els == null || els.Count == 0)
+                    return null;
+                BoundingBoxXYZ bb = els.First().get_BoundingBox(null);
+                if (bb == null)
+                    return null;
+                double x = Math.Max(bb.Min.X, Math.Min(bb.Max.X, from.X));
+                double y = Math.Max(bb.Min.Y, Math.Min(bb.Max.Y, from.Y));
+                double z = Math.Max(bb.Min.Z, Math.Min(bb.Max.Z, from.Z));
+                return new XYZ(x, y, z);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public static XYZ GetTextNoteHostPoint(TextNote tn)
+        {
+            try
+            {
+                IList<Leader> leaders = tn.GetLeaders();
+                if (leaders != null)
+                {
+                    foreach (Leader leader in leaders)
+                        return leader.End;
+                }
+            }
+            catch { }
+
+            return tn.Coord;
+        }
+    }
+}

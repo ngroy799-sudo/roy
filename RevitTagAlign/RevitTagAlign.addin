@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <!-- Ribbon application (custom tab + Add-Ins panel) -->
+  <AddIn Type="Application">
+    <Name>TagAlign Tool</Name>
+    <Assembly>RevitTagAlign.dll</Assembly>
+    <FullClassName>RevitTagAlign.App</FullClassName>
+    <ClientId>8F3A1C2B-4D5E-6789-ABCD-EF0123456789</ClientId>
+    <VendorId>ADSK</VendorId>
+    <VendorDescription>TagAlign Tool for Revit 2023</VendorDescription>
+  </AddIn>
+
+  <!--
+    Command entries appear under Add-Ins > External Tools
+    and are reliably listed in Keyboard Shortcuts (KS).
+    Search KS for: TagAlign
+  -->
+  <AddIn Type="Command">
+    <Text>TagAlign Align Selected Tags</Text>
+    <Description>Align selected tags/text notes: fixed corner angle, 1-click tag position.</Description>
+    <Assembly>RevitTagAlign.dll</Assembly>
+    <FullClassName>RevitTagAlign.AlignTagsCommand</FullClassName>
+    <ClientId>8F3A1C2B-4D5E-6789-ABCD-EF0123456791</ClientId>
+    <VendorId>ADSK</VendorId>
+    <VendorDescription>TagAlign Tool for Revit 2023</VendorDescription>
+    <VisibilityMode>AlwaysVisible</VisibilityMode>
+  </AddIn>
+
+  <AddIn Type="Command">
+    <Text>TagAlign Leader Dashboard</Text>
+    <Description>Open TagAlign leader angle / landing dashboard.</Description>
+    <Assembly>RevitTagAlign.dll</Assembly>
+    <FullClassName>RevitTagAlign.AnnotationDashboardCommand</FullClassName>
+    <ClientId>8F3A1C2B-4D5E-6789-ABCD-EF0123456792</ClientId>
+    <VendorId>ADSK</VendorId>
+    <VendorDescription>TagAlign Tool for Revit 2023</VendorDescription>
+    <VisibilityMode>AlwaysVisible</VisibilityMode>
+  </AddIn>
+
+  <AddIn Type="Command">
+    <Text>TagAlign Settings Folder</Text>
+    <Description>Open TagAlign settings folder (AlignConfig.xml).</Description>
+    <Assembly>RevitTagAlign.dll</Assembly>
+    <FullClassName>RevitTagAlign.OpenSettingsFolderCommand</FullClassName>
+    <ClientId>8F3A1C2B-4D5E-6789-ABCD-EF0123456793</ClientId>
+    <VendorId>ADSK</VendorId>
+    <VendorDescription>TagAlign Tool for Revit 2023</VendorDescription>
+    <VisibilityMode>AlwaysVisible</VisibilityMode>
+  </AddIn>
+</RevitAddIns>
