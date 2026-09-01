@@ -12,8 +12,8 @@
 
 - **Tag 頭**：垂直 stack，間距 = **Vertical Spacing（mm，可自行設定）**
 - **角度**：全部 **平行**（Configure Angle，elbow 黃↔紅）
-- **橫線 + 角度線**：由 anchor 基準出發，**按 row / host 位置自動加長或縮短**，接到 pinned host 接觸點
-- 解唔到幾何時 → 用 anchor landing + face snap
+- **橫 landing**：全部 **等長**（由 anchor tag 決定 sharedLanding）
+- **紅 leader**：平行，長度按 host 遠近 **加長或縮短**；end 釘喺 **原本 host 接觸點**（唔轉面）
 
 ### Vertical Spacing
 

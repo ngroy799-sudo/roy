@@ -5,7 +5,7 @@ namespace RevitTagAlign
     /// <summary>
     /// Pure view-plane math matching Bird Tools Tag Alignment Tool v1.4
     /// (https://www.youtube.com/watch?v=YVjbYY0tf6E):
-    /// stacked tagheads, parallel angled leaders (per-tag adaptive landing + red lengths in common-angle mode),
+    /// stacked tagheads, equal horizontal landings, parallel angled red leaders (common-angle mode),
     /// ends snapped to the ORIGINAL host face (never switches, never flies).
     /// No Revit types — unit-tested independently.
     /// </summary>
@@ -297,10 +297,21 @@ namespace RevitTagAlign
             double r, u, depth;
             if (t >= 0.02)
             {
+                // Keep elbow→end parallel to arrow: use plane intersection, do not
+                // clamp along the ray onto bbox (that bends reds and breaks Bird parity).
                 V3 hit = elbow + dir * t;
-                r = verticalFace ? rFace : Clamp(hit.Dot(right), rr.Min, rr.Max);
-                u = verticalFace ? Clamp(hit.Dot(up), uu.Min, uu.Max) : uFace;
-                depth = Clamp(hit.Dot(n), nn.Min, nn.Max);
+                if (verticalFace)
+                {
+                    r = rFace;
+                    u = hit.Dot(up);
+                    depth = hit.Dot(n);
+                }
+                else
+                {
+                    r = hit.Dot(right);
+                    u = uFace;
+                    depth = hit.Dot(n);
+                }
             }
             else
             {

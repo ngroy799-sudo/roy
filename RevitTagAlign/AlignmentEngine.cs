@@ -11,8 +11,8 @@ namespace RevitTagAlign
     /// - Pick = taghead of the tag closest to tagged elements
     /// - Upper: that tag at stack bottom; others grow +Up
     /// - Lower: that tag at stack top; others grow -Up
-    /// - Anchor tag (row 0) sets baseline landing; each tag adapts landing + red at parallel angle
-    /// - Common-angle: parallel angled leaders to pinned ORIGINAL host contact
+    /// - Anchor tag (row 0) sets equal horizontal landing for the whole stack
+    /// - Common-angle: equal landings, parallel angled reds; ends pinned to ORIGINAL host contact
     /// - Constant Landing: fixed landing; angled segments aim at hosts (not common angle)
     /// - Face never switches (left stays left); ends stay on the element (no fly-away)
     /// </summary>
@@ -187,7 +187,7 @@ namespace RevitTagAlign
             V3 vPick = ToV3(tagPosition);
 
             // Anchor = items[0] at row 0 (closest-to-pick / bottom-or-top host). Its landing
-            // defines equal horizontal landing for the whole stack; red lengths vary per tag.
+            // length is shared by every row; only red segment length varies per host.
             double sharedLanding = uniformLanding;
             if (commonAngle && items.Count > 0)
             {
@@ -236,7 +236,8 @@ namespace RevitTagAlign
                 XYZ head = FromV3(vHead);
                 XYZ elbow = FromV3(vElbow);
                 XYZ end = FromV3(vEnd);
-                ApplyItemGeometry(item, head, elbow, end, end, cfg, tagsOnLeft);
+                XYZ pinHost = item.HostPoint ?? end;
+                ApplyItemGeometry(item, head, elbow, end, pinHost, cfg, tagsOnLeft);
             }
         }
 
@@ -309,7 +310,9 @@ namespace RevitTagAlign
                     vLanding, vArrow, vRight, vUp,
                     commonAngle, sharedLanding, uniformLanding,
                     out vElbow, out vEnd);
-                ApplyItemGeometry(item, head, FromV3(vElbow), FromV3(vEnd), FromV3(vEnd), cfg, tagsOnLeft);
+                XYZ end = FromV3(vEnd);
+                XYZ pinHost = item.HostPoint ?? end;
+                ApplyItemGeometry(item, head, FromV3(vElbow), end, pinHost, cfg, tagsOnLeft);
             }
         }
 
@@ -363,14 +366,13 @@ namespace RevitTagAlign
         {
             if (commonAngle)
             {
-                // Anchor tag sets sharedLanding baseline. Each tag adapts landing + red
-                // to pinned host contact at the same parallel angle (lengths grow/shrink by row/host).
+                // Bird Tools v1.4: equal horizontal landing column + parallel reds.
+                // End is pinned to original host contact on the original face (ApplyItemGeometry).
+                LeaderGeometry.ComputeStackCommonAngleLeader(
+                    vHead, bbMin, bbMax, face,
+                    vLanding, vArrow, vRight, vUp,
+                    sharedLanding, out vElbow, out vEnd);
                 vEnd = LeaderGeometry.ClampPointToOriginalFace(vHost, bbMin, bbMax, face, vRight, vUp);
-                if (!LeaderGeometry.TrySolveAdaptiveElbow(vHead, vEnd, vLanding, vArrow, out vElbow))
-                {
-                    vElbow = LeaderGeometry.ElbowFromHead(vHead, vLanding, sharedLanding);
-                    vEnd = LeaderGeometry.SnapEndToOriginalFace(vElbow, vArrow, bbMin, bbMax, face, vRight, vUp);
-                }
             }
             else
             {
